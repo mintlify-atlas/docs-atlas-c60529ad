@@ -222,11 +222,23 @@ Match files by high-level category.
 
 ### Custom Script
 
-Run AppleScript to determine if a file should be excluded.
+Run AppleScript to determine if a file should be excluded. This allows programmatic exclusion logic based on file metadata, content, or system state.
 
-<Warning>
-  Custom scripts are **not implemented** in the current version. This is a placeholder for future functionality.
-</Warning>
+<CodeGroup>
+```applescript Example
+-- Exclude files larger than 100MB
+tell application "Finder"
+  set fileSize to size of (POSIX file theFile)
+  if fileSize > 104857600 then
+    return true
+  else
+    return false
+  end if
+end tell
+```
+</CodeGroup>
+
+**Use case**: Advanced filtering based on custom logic, integration with other apps, or complex metadata checks.
 
 ---
 
