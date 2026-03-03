@@ -1,0 +1,561 @@
+---
+title: Duplicate Detection
+description: Find and safely merge duplicate files using SHA-256 hashing with exact and semantic matching
+---
+
+## How Duplicate Detection Works
+
+Sorty identifies duplicate files using **content-based hashing** (SHA-256), not just filename matching. This means:
+
+- Files with **identical content** are grouped, regardless of name
+- Renamed files are detected as duplicates
+- Files in different locations are found
+- Safe deletion with recovery options
+
+<Note>
+Duplicates are found by computing a cryptographic hash of file contents, ensuring 100% accuracy.
+</Note>
+
+## Detection Methods
+
+Sorty offers three comparison methods:
+
+<Tabs>
+  <Tab title="Exact (SHA-256)">
+    **Most Accurate**
+    
+    Computes SHA-256 hash of entire file contents:
+    
+    ```swift
+    public static func computeSHA256(for url: URL) -> String? {
+        guard let data = try? Data(contentsOf: url) else { return nil }
+        let hash = SHA256.hash(data: data)
+        return hash.compactMap { String(format: "%02x", $0) }.joined()
+    }
+    ```
+    
+    **Pros:**
+    - 100% accurate
+    - Detects renamed files
+    - Cryptographically secure
+    
+    **Cons:**
+    - Slower for large files
+    - CPU-intensive
+  </Tab>
+  
+  <Tab title="Fast (Name + Size)">
+    **Good Balance**
+    
+    Groups by filename and size:
+    
+    ```swift
+    let key = "\(file.name)_\(file.size)"
+    ```
+    
+    **Pros:**
+    - Very fast
+    - Good for large batches
+    - Low CPU usage
+    
+    **Cons:**
+    - May miss renamed duplicates
+    - False positives possible (same name + size, different content)
+  </Tab>
+  
+  <Tab title="Metadata (Name + Size + Date)">
+    **Strictest**
+    
+    Groups by filename, size, and modification date:
+    
+    ```swift
+    let timestamp = file.modificationDate?.timeIntervalSince1970 ?? 0
+    let key = "\(file.name)_\(file.size)_\(Int(timestamp))"
+    ```
+    
+    **Pros:**
+    - Reduces false positives from Fast mode
+    - Still very quick
+    
+    **Cons:**
+    - Misses duplicates with different timestamps
+    - Not useful for files copied at different times
+  </Tab>
+</Tabs>
+
+<Tip>
+Use **Exact** mode for critical files. Use **Fast** mode for quick scans of large directories.
+</Tip>
+
+## Duplicate Groups
+
+Files are grouped by hash:
+
+```swift
+public struct DuplicateGroup: Identifiable {
+    public let id: UUID
+    public let hash: String
+    public let files: [FileItem]
+    public let totalSize: Int64
+    public let potentialSavings: Int64 // Size - one copy
+    
+    public var duplicateCount: Int {
+        max(0, files.count - 1)
+    }
+}
+```
+
+### Example Group
+
+```
+Group: 3 files (2 duplicates)
+Hash: a7f3b9c8...
+Total Size: 15.2 MB
+Potential Savings: 10.1 MB (keeping 1, removing 2)
+
+Files:
+  1. /Users/me/Downloads/photo.jpg (5.1 MB) ← Oldest
+  2. /Users/me/Desktop/photo.jpg (5.1 MB)
+  3. /Users/me/Photos/photo.jpg (5.1 MB)
+```
+
+## Semantic Duplicates
+
+In addition to exact matches, Sorty can detect **semantic duplicates** (similar but not identical):
+
+```swift
+public struct SemanticDuplicateGroup: Identifiable {
+    public let files: [FileItem]
+    public let similarity: Double // 0.0-1.0
+    public let groupType: GroupType
+    public let recommendation: DuplicateRecommendation
+}
+
+public enum GroupType: String {
+    case nearDuplicate = "Near Duplicate"
+    case versionedFile = "Versioned File"
+    case resizedImage = "Resized Image"
+    case reencoded = "Re-encoded"
+}
+```
+
+### Detection Methods
+
+<AccordionGroup>
+  <Accordion title="Resized Images">
+    Detects images that are the same but different resolutions:
+    
+    - Compare aspect ratios
+    - Check EXIF similarity
+    - Visual similarity (if vision mode enabled)
+    
+    **Example:**
+    ```
+    photo_original.jpg (4032x3024)
+    photo_thumbnail.jpg (800x600)
+    Similarity: 95%
+    ```
+  </Accordion>
+  
+  <Accordion title="Versioned Files">
+    Identifies file versions by name patterns:
+    
+    - `file_v1.pdf`, `file_v2.pdf`
+    - `report_draft.docx`, `report_final.docx`
+    - `design_2025-01-01.psd`, `design_2025-01-15.psd`
+    
+    **Recommendation:** Keep newest or largest
+  </Accordion>
+  
+  <Accordion title="Re-encoded Media">
+    Detects media files with similar content but different encoding:
+    
+    - Compare duration (videos/audio)
+    - Check bitrate differences
+    - Detect transcoded files
+    
+    **Example:**
+    ```
+    song.flac (30 MB, lossless)
+    song.mp3 (5 MB, 320kbps)
+    Similarity: 88%
+    ```
+  </Accordion>
+  
+  <Accordion title="Near Duplicates">
+    Finds files with minor differences:
+    
+    - Slight edits
+    - Cropped images
+    - Compressed versions
+    
+    Requires manual review.
+  </Accordion>
+</AccordionGroup>
+
+### Semantic Similarity Threshold
+
+Configure in **Settings → Duplicates**:
+
+```swift
+public var semanticSimilarityThreshold: Double = 0.85 // 85% similar
+```
+
+<Note>
+Lower threshold = more matches (higher false positive rate). Higher threshold = fewer matches (more conservative).
+</Note>
+
+## Unified Duplicate Groups
+
+Exact and semantic duplicates are presented together:
+
+```swift
+public enum UnifiedDuplicateGroup: Identifiable {
+    case exact(DuplicateGroup)
+    case semantic(SemanticDuplicateGroup)
+    
+    public var confidenceLevel: ConfidenceLevel {
+        switch self {
+        case .exact:
+            return .high
+        case .semantic(let group):
+            if group.similarity >= 0.98 { return .high }
+            else if group.similarity >= 0.90 { return .medium }
+            else { return .low }
+        }
+    }
+}
+
+public enum ConfidenceLevel: String {
+    case high = "Safe to Merge"
+    case medium = "Review Suggested"
+    case low = "Manual Review"
+}
+```
+
+## Safe Deletion
+
+When enabled (recommended), "deleted" duplicates aren't immediately removed:
+
+<Steps>
+  <Step title="Mark for Deletion">
+    Files are flagged but not deleted from disk.
+  </Step>
+  
+  <Step title="Track in History">
+    Deletion is recorded in organization history.
+  </Step>
+  
+  <Step title="Restore if Needed">
+    Go to **History → find the cleanup session → click Restore**.
+  </Step>
+  
+  <Step title="Confirm Deletion">
+    Only after confirmation are files permanently removed.
+  </Step>
+</Steps>
+
+<Warning>
+Disabling Safe Deletion means files are immediately sent to Trash and cannot be recovered through Sorty.
+</Warning>
+
+## Bulk Operations
+
+Quick actions for managing duplicates:
+
+### Delete All (Keep Newest)
+
+Keeps the most recently modified file:
+
+```swift
+let newest = group.files.max { ($0.modificationDate ?? .distantPast) < ($1.modificationDate ?? .distantPast) }
+let toDelete = group.files.filter { $0.id != newest?.id }
+```
+
+### Delete All (Keep Oldest)
+
+Keeps the original (oldest) file:
+
+```swift
+let oldest = group.files.min { ($0.creationDate ?? .distantFuture) < ($1.creationDate ?? .distantFuture) }
+let toDelete = group.files.filter { $0.id != oldest?.id }
+```
+
+### Delete All (Keep Largest)
+
+Keeps the file with the largest size (e.g., highest quality image):
+
+```swift
+let largest = group.files.max { $0.size < $1.size }
+let toDelete = group.files.filter { $0.id != largest?.id }
+```
+
+### Custom Selection
+
+Manually select which files to keep/delete:
+
+1. Review each duplicate group
+2. Select files to delete (checkboxes)
+3. Click **Delete Selected**
+
+## Duplicate Detection Manager
+
+Manages the scanning process:
+
+```swift
+@MainActor
+public class DuplicateDetectionManager: ObservableObject {
+    @Published public var state: DuplicateScanState = .idle
+    @Published public var duplicateGroups: [DuplicateGroup] = []
+    @Published public var semanticGroups: [SemanticDuplicateGroup] = []
+    @Published public var scanProgress: Double = 0
+    
+    public var totalDuplicates: Int {
+        duplicateGroups.reduce(0) { $0 + $1.duplicateCount }
+    }
+    
+    public var potentialSavings: Int64 {
+        duplicateGroups.reduce(0) { $0 + $1.potentialSavings }
+    }
+}
+```
+
+### Scan Process
+
+<Steps>
+  <Step title="Preparing">
+    Initialize scan state, clear previous results.
+  </Step>
+  
+  <Step title="Computing Hashes">
+    Calculate SHA-256 for each file:
+    
+    ```swift
+    for i in 0..<files.count {
+        if files[i].sha256Hash == nil {
+            files[i].sha256Hash = HashUtility.computeSHA256(
+                for: URL(fileURLWithPath: files[i].path)
+            )
+        }
+        scanProgress = Double(i + 1) / Double(total)
+    }
+    ```
+  </Step>
+  
+  <Step title="Grouping">
+    Group files by hash:
+    
+    ```swift
+    var hashGroups: [String: [FileItem]] = [:]
+    for file in files {
+        guard let hash = file.sha256Hash else { continue }
+        hashGroups[hash, default: []].append(file)
+    }
+    
+    let duplicates = hashGroups
+        .filter { $0.value.count > 1 }
+        .map { DuplicateGroup(hash: $0.key, files: $0.value) }
+        .sorted { $0.potentialSavings > $1.potentialSavings }
+    ```
+  </Step>
+  
+  <Step title="Semantic Analysis (Optional)">
+    If enabled, run semantic duplicate detection:
+    
+    ```swift
+    if settings.includeSemanticDuplicates {
+        let semanticDetector = SemanticDuplicateDetector(
+            similarityThreshold: settings.normalizedSemanticSimilarityThreshold
+        )
+        semanticGroups = await semanticDetector.findSemanticDuplicates(in: files)
+    }
+    ```
+  </Step>
+  
+  <Step title="Complete">
+    Update state, display results.
+  </Step>
+</Steps>
+
+## Scan Settings
+
+```swift
+public struct DuplicateSettings: Codable {
+    public var comparisonMethod: ComparisonMethod = .exact
+    public var includeSemanticDuplicates: Bool = false
+    public var semanticSimilarityThreshold: Int = 85 // 0-100
+    public var safeDeletion: Bool = true
+    public var scanHiddenFiles: Bool = false
+}
+
+public enum ComparisonMethod: String, Codable {
+    case exact = "Exact (SHA-256)"
+    case fast = "Fast (Name + Size)"
+    case metadata = "Metadata (Name + Size + Date)"
+}
+```
+
+## Performance Optimization
+
+### Hash Caching
+
+Hashes are cached in `FileItem.sha256Hash`:
+
+```swift
+if files[i].sha256Hash == nil {
+    files[i].sha256Hash = computeHash()
+}
+```
+
+<Tip>
+Re-scanning the same directory uses cached hashes, making subsequent scans much faster.
+</Tip>
+
+### Incremental Progress
+
+UI updates are yielded periodically:
+
+```swift
+if i % 10 == 0 {
+    await Task.yield() // Let UI update
+}
+```
+
+### Cancellation Support
+
+Scans can be cancelled mid-process:
+
+```swift
+if Task.isCancelled {
+    isScanning = false
+    state = .idle
+    return
+}
+```
+
+## Potential Savings Display
+
+Formatted savings with human-readable units:
+
+```swift
+public var formattedSavings: String {
+    ByteCountFormatter.string(fromByteCount: potentialSavings, countStyle: .file)
+}
+
+// Examples:
+// 1.5 GB
+// 245.3 MB
+// 12.8 KB
+```
+
+## Integration with Organization
+
+Duplicate detection runs automatically during organization:
+
+```swift
+private func duplicateDetectionPhase(files: [FileItem]) async throws -> ([FileItem], String) {
+    updateProgress(0.21, stage: "Checking for duplicates...")
+    
+    let detector = DuplicateDetector()
+    var updatedFiles = files
+    if updatedFiles.contains(where: { $0.sha256Hash == nil }) {
+        await detector.computeHashes(for: &updatedFiles)
+    }
+    
+    let duplicates = await detector.findDuplicates(in: updatedFiles)
+    await MainActor.run {
+        self.detectedDuplicates = duplicates
+    }
+    
+    if aiConfig?.detectDuplicates ?? true {
+        return (updatedFiles, PromptContextHelper.duplicateContext(from: duplicates))
+    }
+    
+    return (updatedFiles, "")
+}
+```
+
+### Duplicate Context in AI Prompt
+
+Duplicates are included in the AI's organization context:
+
+```
+DUPLICATE FILES DETECTED:
+- 5 groups of duplicate files found
+- Total potential savings: 2.3 GB
+
+Group 1: photo.jpg (3 copies)
+  /Downloads/photo.jpg
+  /Desktop/photo.jpg
+  /Photos/photo.jpg
+
+Consider organizing these files together and removing duplicates.
+```
+
+## Duplicate Handling Strategies
+
+<Tabs>
+  <Tab title="Keep in Place">
+    Leave all copies where they are, flag for manual review.
+  </Tab>
+  
+  <Tab title="Merge to One Location">
+    Move all duplicates to a single folder:
+    
+    ```
+    Duplicates/
+    ├── photo.jpg (original)
+    ├── photo (1).jpg ← marked for deletion
+    └── photo (2).jpg ← marked for deletion
+    ```
+  </Tab>
+  
+  <Tab title="Smart Keep">
+    Automatically keep the "best" copy:
+    - Highest quality (largest size)
+    - Most recently modified
+    - In preferred location (e.g., organized folder vs. Downloads)
+  </Tab>
+  
+  <Tab title="Archive Duplicates">
+    Move duplicates to `Archives/Duplicates-[Date]/` for review.
+  </Tab>
+</Tabs>
+
+## CLI Commands
+
+```bash
+# Scan for duplicates
+sorty duplicates /path/to/scan
+
+# Auto-start scan
+sorty duplicates /path/to/scan --auto
+
+# Use specific comparison method
+sorty duplicates /path/to/scan --method exact
+sorty duplicates /path/to/scan --method fast
+```
+
+## Deeplinks
+
+| Deeplink | Description |
+|----------|-------------|
+| `sorty://duplicates` | Open duplicates view |
+| `sorty://duplicates?path=/Users/me/Downloads` | Scan specific path |
+| `sorty://duplicates?path=/Users/me/Downloads&autostart=true` | Auto-start scan |
+
+## Related Features
+
+<CardGroup cols={2}>
+  <Card title="Workspace Health" icon="heart-pulse" href="/features/workspace-health">
+    Monitor directory health and clutter
+  </Card>
+  
+  <Card title="File Organization" icon="folder-tree" href="/features/file-organization">
+    AI-powered intelligent organization
+  </Card>
+  
+  <Card title="The Learnings" icon="brain" href="/features/the-learnings">
+    Learn from your organization habits
+  </Card>
+</CardGroup>

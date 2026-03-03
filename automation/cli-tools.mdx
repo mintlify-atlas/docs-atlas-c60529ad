@@ -1,0 +1,405 @@
+---
+title: CLI Tools
+description: Command-line tools for automating Sorty from the terminal
+icon: terminal
+---
+
+Sorty provides two command-line tools for automation and scripting: the **`sorty`** command for controlling the app via deeplinks, and the **`learnings`** command for managing your learning profile.
+
+## Installation
+
+To install the CLI tools, run:
+
+```bash
+make install
+```
+
+This will install both `sorty` and `learnings` commands to your system PATH.
+
+## The `sorty` Command
+
+The `sorty` CLI provides comprehensive control over the Sorty application using the `sorty://` URL scheme.
+
+### Basic Usage
+
+```bash
+sorty <command> [options]
+```
+
+### Organization Commands
+
+#### Organize a Directory
+
+Start organizing a directory with optional persona and auto-start:
+
+```bash
+# Organize current directory
+sorty organize .
+
+# Organize specific folder
+sorty organize /Users/me/Downloads
+
+# Use a specific persona
+sorty organize ~/Documents --persona developer
+
+# Auto-start organization without preview
+sorty organize ~/Downloads --auto
+
+# Combine persona and auto-start
+sorty organize . --persona photographer --auto
+```
+
+**Parameters:**
+- `<path>` - Directory path to organize (required)
+- `--persona <id>` - Persona ID (e.g., `general`, `developer`, `photographer`)
+- `--auto` - Automatically start organization without preview
+
+#### Scan for Duplicates
+
+Find duplicate files in a directory:
+
+```bash
+# Scan for duplicates
+sorty duplicates ~/Documents
+
+# Auto-start scanning
+sorty duplicates /path/to/scan --auto
+```
+
+**Parameters:**
+- `<path>` - Directory path to scan (required)
+- `--auto` - Automatically start scanning
+
+### Persona Management
+
+#### Create a New Persona
+
+Open the persona creator interface:
+
+```bash
+sorty persona create
+```
+
+#### Generate Persona from Description
+
+Use AI to generate a custom persona from a text description:
+
+```bash
+# Generate persona for specific use case
+sorty persona generate "I want to organize my sci-fi ebook collection by author"
+
+# Generate work-focused persona
+sorty persona generate "Organize client project files by date and client name"
+```
+
+### Configuration Commands
+
+#### Manage Watched Folders
+
+```bash
+# View watched folders
+sorty watched
+
+# Add a folder to watch list
+sorty watched add ~/Downloads
+sorty watched add /path/to/monitor
+```
+
+#### Manage Exclusion Rules
+
+```bash
+# View exclusion rules
+sorty exclusions
+
+# Add exclusion pattern
+sorty exclusions add "*.log"
+sorty exclusions add "*.tmp"
+sorty rules add "node_modules/*"
+```
+
+#### Manage Storage Locations
+
+```bash
+# View storage locations
+sorty storage
+
+# Add storage location
+sorty storage add /Volumes/External/Archive
+```
+
+### Navigation Commands
+
+#### Open Settings
+
+```bash
+# Open general settings
+sorty settings
+
+# Open specific settings section
+sorty settings rules
+sorty settings provider
+sorty settings strategy
+sorty settings tuning
+sorty settings automation
+sorty settings finder
+sorty settings notifications
+sorty settings advanced
+sorty settings troubleshooting
+sorty settings help
+```
+
+**Available sections:**
+- `rules` - Exclusion rules configuration
+- `provider` - AI provider settings
+- `strategy` - Organization strategy options
+- `tuning` - Temperature and model tuning
+- `automation` - Automation settings
+- `finder` - Finder extension configuration
+- `notifications` - Notification preferences
+- `advanced` - Advanced settings
+- `troubleshooting` - Troubleshooting tools
+- `help` - Help and documentation
+
+#### Open Other Views
+
+```bash
+# View Workspace Health
+sorty status
+sorty health
+
+# View watched folders list
+sorty list
+
+# Open Learnings dashboard
+sorty learnings
+
+# View organization history
+sorty history
+
+# Show help
+sorty help
+```
+
+### Utility Commands
+
+#### Check for Updates
+
+```bash
+sorty update
+```
+
+#### Show Version
+
+```bash
+sorty version
+sorty -v
+sorty --version
+```
+
+## The `learnings` Command
+
+The `learnings` CLI manages your personalized learning profile and preferences.
+
+### Usage
+
+```bash
+learnings <command>
+```
+
+### Available Commands
+
+| Command | Description |
+|---------|-------------|
+| `status` | Show learning status and consent state |
+| `stats` | Display detailed learning statistics |
+| `export` | Export learning profile data |
+| `clear` | Delete all learning data permanently |
+| `withdraw` | Pause learning data collection |
+| `info` | Show system and app information |
+
+### Examples
+
+```bash
+# Check if learning is enabled
+learnings status
+
+# View detailed statistics
+learnings stats
+
+# Export your learning profile
+learnings export > my-learnings.json
+
+# Clear all learning data
+learnings clear
+
+# Pause learning without deleting data
+learnings withdraw
+
+# Show app version and system info
+learnings info
+```
+
+## Environment Variables
+
+### Dry Run Mode
+
+Set `SORTY_CLI_DRY_RUN=1` to print the deeplink URL instead of opening it:
+
+```bash
+# Preview the command without executing
+SORTY_CLI_DRY_RUN=1 sorty organize ~/Downloads --auto
+# Output: sorty://organize?autostart=true&path=/Users/me/Downloads
+```
+
+This is useful for:
+- Testing command syntax
+- Debugging deeplink generation
+- Creating custom automation scripts
+
+## Scripting Examples
+
+### Organize Multiple Directories
+
+```bash
+#!/bin/bash
+# Organize common directories with appropriate personas
+
+sorty organize ~/Documents --persona general --auto
+sorty organize ~/Downloads --persona general --auto
+sorty organize ~/Projects --persona developer --auto
+sorty organize ~/Photos --persona photographer --auto
+```
+
+### Weekly Cleanup Script
+
+```bash
+#!/bin/bash
+# Weekly maintenance script
+
+echo "Running weekly file maintenance..."
+
+# Scan Downloads for duplicates
+sorty duplicates ~/Downloads --auto
+
+# Check workspace health
+sorty health
+
+# Organize Downloads
+sorty organize ~/Downloads --auto
+
+echo "Maintenance complete!"
+```
+
+### Conditional Organization
+
+```bash
+#!/bin/bash
+# Organize only if directory has more than 50 files
+
+DIR="$HOME/Downloads"
+FILE_COUNT=$(find "$DIR" -maxdepth 1 -type f | wc -l)
+
+if [ "$FILE_COUNT" -gt 50 ]; then
+    echo "Found $FILE_COUNT files. Starting organization..."
+    sorty organize "$DIR" --auto
+else
+    echo "Only $FILE_COUNT files. Skipping organization."
+fi
+```
+
+### Add Multiple Exclusion Rules
+
+```bash
+#!/bin/bash
+# Add common development exclusions
+
+DEV_PATTERNS=(
+    "node_modules/*"
+    ".git/*"
+    "*.log"
+    "*.tmp"
+    ".DS_Store"
+    "*.cache"
+)
+
+for pattern in "${DEV_PATTERNS[@]}"; do
+    sorty rules add "$pattern"
+    echo "Added exclusion: $pattern"
+done
+```
+
+## Integration with LaunchAgent
+
+Automate Sorty on a schedule using a LaunchAgent:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.sorty.daily-cleanup</string>
+    
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/sorty</string>
+        <string>organize</string>
+        <string>/Users/YOUR_USERNAME/Downloads</string>
+        <string>--auto</string>
+    </array>
+    
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>9</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+    
+    <key>StandardOutPath</key>
+    <string>/tmp/sorty-cleanup.log</string>
+    
+    <key>StandardErrorPath</key>
+    <string>/tmp/sorty-cleanup.error.log</string>
+</dict>
+</plist>
+```
+
+Save to `~/Library/LaunchAgents/com.sorty.daily-cleanup.plist` and load:
+
+```bash
+launchctl load ~/Library/LaunchAgents/com.sorty.daily-cleanup.plist
+```
+
+## Error Handling
+
+The `sorty` CLI includes robust error handling:
+
+- **Missing path**: "Missing required path. Usage: sorty organize &lt;path&gt; [options]"
+- **Invalid directory**: "Expected a directory path, got: /path/to/file"
+- **Directory not found**: "Directory does not exist: /path/to/dir"
+- **Unknown option**: "Unknown option for organize: --invalid"
+- **Extra arguments**: "Unexpected extra argument for organize: extra"
+
+All errors are written to stderr and exit with code 1.
+
+## Tips
+
+<Tip>
+Use tab completion by adding the `sorty` script to your shell's completion system. The command structure is designed to be intuitive and follows common CLI patterns.
+</Tip>
+
+<Warning>
+The CLI requires Sorty.app to be running or will launch it automatically. Commands are executed via the `sorty://` URL scheme, which opens the app if needed.
+</Warning>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Deeplinks" icon="link" href="/automation/deeplinks">
+    Learn about the URL scheme for advanced automation
+  </Card>
+  <Card title="Finder Integration" icon="folder" href="/automation/finder-integration">
+    Set up right-click organization from Finder
+  </Card>
+</CardGroup>

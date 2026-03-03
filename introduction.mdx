@@ -1,0 +1,115 @@
+---
+title: "Welcome to Sorty"
+description: "AI-powered macOS file organizer that intelligently sorts your files into semantic, meaningful folders using advanced AI models"
+---
+
+# Welcome to Sorty
+
+Sorty is a native macOS SwiftUI application that uses AI to intelligently organize directory contents into relevant, semantically-named folders. Stop spending hours manually sorting files—let AI understand the context and create the perfect folder structure for you.
+
+## Why Sorty?
+
+Traditional file organization is time-consuming and inconsistent. Sorty leverages artificial intelligence to:
+
+- **Understand context**: Analyzes file names, types, and optionally content to make smart categorization decisions
+- **Learn from you**: The Learnings Profile trains passively from your existing folder structures and manual corrections
+- **Adapt to your workflow**: Custom Personas for developers, photographers, students, and more
+- **Work anywhere**: Supports OpenAI, Anthropic, Ollama, GitHub Copilot, and Apple Intelligence (on-device)
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/installation">
+    Download pre-built releases or build from source with Xcode
+  </Card>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Get your first folder organized in under 5 minutes
+  </Card>
+  <Card title="Custom Personas" icon="user-gear" href="/features/personas">
+    Specialized AI profiles for different workflows and professions
+  </Card>
+  <Card title="The Learnings" icon="brain" href="/features/learnings">
+    Passive learning system that improves suggestions over time
+  </Card>
+</CardGroup>
+
+## Key Features
+
+### Intelligent Organization
+Uses AI to understand file content and context for accurate categorization. The AI recognizes patterns like project structures, date sequences, and semantic groupings—no manual rules required.
+
+### Multiple AI Providers
+Choose what works best for you:
+- **Apple Intelligence**: On-device processing with privacy-first Apple Foundation Models (requires macOS 15.1+)
+- **OpenAI-Compatible APIs**: OpenAI, Anthropic Claude, GitHub Copilot, Groq, Ollama, and more
+- **AI Vision Support**: Multimodal analysis for providers that support it to understand image content
+
+### The Learnings Profile
+A passive learning system that trains from your existing folder structures, manual corrections, and even cancelled organizations. It continuously improves future suggestions without requiring explicit training.
+
+### Finder Extension
+Right-click any folder in Finder to instantly start the organization process. Seamlessly integrated with your macOS workflow.
+
+### Workspace Health Monitoring
+Monitor and analyze the health of your directories with actionable insights:
+- Clutter growth tracking
+- Empty folder detection
+- Duplicate file candidates
+- Space distribution analytics
+- Quick cleanup actions
+
+### Interactive Preview
+Review and tweak suggested organization before any files are moved. Edit folder names, remove files from suggestions, or provide additional instructions.
+
+### Organization History
+Track all operations with detailed analytics, AI reasoning, and one-click rollback support. Press ⌘Z to undo any organization instantly.
+
+### Safe by Design
+Includes dry-run modes, comprehensive validation, duplicate protection settings, and exclusion rules. Your files are protected:
+- Safe Deletion for duplicates (with restore capability)
+- Security bookmarks for folder access
+- API keys stored in macOS Keychain
+- Learnings profile encrypted with AES-256
+
+## Automation & Control
+
+### App-Wide Deeplinks
+Control the app externally via `sorty://` URL schemes for automation and shortcuts. Launch organizations, scan for duplicates, or manage watched folders from anywhere.
+
+### CLI Tooling
+Two companion command-line tools:
+- **`learnings`**: Manage learning profiles from terminal
+- **`sorty`**: Control the app via deeplinks from command line
+
+### Menu Bar Controls
+Quick access with keyboard shortcuts for common actions. Toggle the sidebar (⌘\\), start organization (⌘R), or open Settings (⌘,).
+
+## Privacy First
+
+<Note>
+  File analysis happens via your chosen AI provider. File contents are **not uploaded** unless you explicitly enable Deep Scan. API keys are stored in the macOS Keychain, and The Learnings profile is encrypted with AES-256 and protected by Touch ID/Face ID.
+</Note>
+
+**Privacy Mode** is enabled by default—it blurs sensitive handles until hover and hides API keys with a manual reveal toggle.
+
+For complete on-device processing, use Ollama or Apple Intelligence. No data leaves your Mac.
+
+## Requirements
+
+- macOS 15.1 or later
+- Apple Silicon or Intel Mac
+- (Optional) API key for OpenAI-compatible provider
+- (Optional) macOS 15.1+ with Apple Intelligence for on-device AI
+
+## Open Source
+
+Sorty is licensed under GNU General Public License v3.0. Contribute on [GitHub](https://github.com/shirishpothi/Sorty).
+
+---
+
+<CardGroup cols={2}>
+  <Card title="Get Started" icon="play" href="/quickstart">
+    Organize your first folder
+  </Card>
+  <Card title="View on GitHub" icon="github" href="https://github.com/shirishpothi/Sorty">
+    Star the repository and contribute
+  </Card>
+</CardGroup>

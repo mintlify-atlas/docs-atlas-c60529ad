@@ -1,0 +1,355 @@
+---
+title: AI File Organization
+description: How Sorty's intelligent organization system analyzes and structures your files
+---
+
+## How Organization Works
+
+Sorty uses AI to analyze your files holistically, considering names, extensions, sizes, dates, and contextual relationships to create a clean, intuitive folder structure.
+
+### Organization Phases
+
+The organization process runs through five distinct phases:
+
+<Steps>
+  <Step title="Scanning">
+    Directory is scanned and files are indexed. Deep Scan mode optionally extracts metadata from PDFs, images (EXIF), documents, and media files.
+  </Step>
+  
+  <Step title="AI Analysis">
+    Files are sent to your configured AI provider. The AI analyzes patterns, naming conventions, file types, and semantic relationships.
+  </Step>
+  
+  <Step title="Validation">
+    The proposed structure is validated against exclusion rules, folder limits, and naming conflicts.
+  </Step>
+  
+  <Step title="Preview">
+    You review the proposed organization and can adjust before applying.
+  </Step>
+  
+  <Step title="Execution">
+    Files are moved to their new locations with full history tracking for rollback.
+  </Step>
+</Steps>
+
+### Organization States
+
+The system maintains clear state transitions throughout the process:
+
+```swift
+public enum OrganizationState {
+    case idle        // Ready to start
+    case scanning    // Reading directory
+    case organizing  // AI is analyzing
+    case ready       // Preview available
+    case applying    // Moving files
+    case completed   // Finished
+    case error       // Something failed
+}
+```
+
+<Note>
+The state machine enforces valid transitions. For example, you can't jump from `scanning` directly to `applying` without going through `organizing` and `ready` first.
+</Note>
+
+## AI Analysis Details
+
+### What the AI Sees
+
+<Tabs>
+  <Tab title="Filename Only">
+    **Default mode** - Only filenames and metadata are sent:
+    - File names and extensions
+    - File sizes and dates
+    - Directory structure
+    - Detected patterns (e.g., "invoice_jan", "invoice_feb")
+  </Tab>
+  
+  <Tab title="Deep Scan">
+    **Enhanced mode** - Content metadata is extracted locally:
+    - PDF text and titles
+    - Image EXIF data (camera, date, location)
+    - Document keywords and properties
+    - Audio/video metadata (artist, album, duration)
+    
+    <Warning>
+    File **contents** are NOT uploaded. Only extracted metadata summaries are sent to the AI.
+    </Warning>
+  </Tab>
+  
+  <Tab title="Vision Mode">
+    **Multimodal analysis** - Images are analyzed for content:
+    - Object recognition
+    - Scene understanding
+    - Text within images (OCR)
+    - Visual similarity grouping
+    
+    Requires OpenAI GPT-4 Vision or compatible provider.
+  </Tab>
+</Tabs>
+
+### Intelligent Grouping Strategies
+
+The AI uses multiple strategies to understand your files:
+
+<AccordionGroup>
+  <Accordion title="Semantic Grouping">
+    Files are grouped by meaning, not just extension:
+    
+    - `proposal_v1.docx`, `proposal_budget.xlsx`, `proposal_mockup.png` → **Proposal/** folder
+    - Detects shared prefixes, suffixes, and stems
+    - Recognizes client/project identifiers
+    
+    **Example:**
+    ```
+    acme_contract.pdf
+    acme_logo.svg
+    acme_invoice_jan.xlsx
+    → Clients/Acme/
+    ```
+  </Accordion>
+  
+  <Accordion title="Project Detection">
+    Automatically identifies software projects:
+    
+    - Looks for `package.json`, `Cargo.toml`, `go.mod`, `.xcodeproj`, `Makefile`
+    - Groups all related source files, configs, and assets
+    - Recognizes paired files (`report.tex` + `report.bib`)
+    
+    **Example:**
+    ```
+    package.json
+    src/index.js
+    README.md
+    → Projects/MyApp/
+    ```
+  </Accordion>
+  
+  <Accordion title="Date-Aware Clustering">
+    Temporal organization for time-based files:
+    
+    - Recognizes patterns: `YYYY-MM-DD`, `MM-DD-YYYY`, "Jan 2026"
+    - Creates temporal subfolders: `2026-01/` or `Q1-2026/`
+    - Groups recurring files: monthly reports, weekly logs
+    
+    **Example:**
+    ```
+    Screenshot 2026-01-15.png
+    Screenshot 2026-01-16.png
+    → Screenshots/2026-01/
+    ```
+  </Accordion>
+  
+  <Accordion title="Mixed Type Intelligence">
+    Keeps related files together despite different types:
+    
+    - Data analysis project: `.py` + `.csv` + `.png` → **Data Analysis/**
+    - Design project: `.psd` + `.png` + `.svg` → **Design/**
+    - Documentation: `.md` + images + diagrams → **Docs/**
+  </Accordion>
+</AccordionGroup>
+
+## System Prompt & Constraints
+
+Sorty's AI operates under strict rules defined in `SystemPrompt.swift`:
+
+### Hard Limits
+
+<CardGroup cols={2}>
+  <Card title="Top-Level Folders" icon="folder-tree">
+    Maximum **10 top-level folders** (configurable)
+    
+    The AI must count and merge categories if it exceeds this limit.
+  </Card>
+  
+  <Card title="Folder Depth" icon="layer-group">
+    Maximum **3 levels deep**
+    
+    Prevents overly complex nested structures.
+  </Card>
+  
+  <Card title="Naming Conflicts" icon="ban">
+    **Never** create a folder with the same name as an existing file.
+  </Card>
+  
+  <Card title="User Instructions" icon="star">
+    Custom instructions **override all default rules**.
+  </Card>
+</CardGroup>
+
+### Streaming Progress Updates
+
+During organization, the AI emits live progress updates:
+
+```
+>> general: Scanning 23 files across 8 file types
+>> pattern: Found 5 invoice PDFs with vendor prefixes
+>> file: report_q4.pdf appears to be finance reporting content
+>> folder: Planning Finance/Invoices hierarchy with year subfolders
+>> decision: Keeping legal contracts separate from vendor billing
+>> constraint: Merging small categories to stay under folder limit
+>> general: Ready to output organization structure.
+```
+
+<Tip>
+These insights are extracted and displayed in real-time in the Live Insights panel.
+</Tip>
+
+## File Tagging
+
+When enabled, Sorty applies Finder-compatible color tags:
+
+| Tag | Semantic Meaning | Use Case |
+|-----|------------------|----------|
+| **Red** | Urgent, Important, Critical | Unpaid invoices, urgent documents |
+| **Orange** | Needs Attention, Review, In Progress | Draft proposals, pending reviews |
+| **Yellow** | Draft, Pending, Temporary | Work in progress |
+| **Green** | Complete, Verified, Approved, Final | Completed projects, signed contracts |
+| **Blue** | Reference, Info, Documentation | Manuals, guides, references |
+| **Purple** | Creative, Design, Media | Photos, designs, videos |
+| **Gray** | Archive, Old, Inactive | Old versions, archived files |
+
+<Note>
+Tags are Spotlight-searchable and visible in Finder's sidebar.
+</Note>
+
+## Temperature Control
+
+Adjust the AI's creativity (0.0-1.0):
+
+<Tabs>
+  <Tab title="Low (0.0-0.3)">
+    **Predictable & Conservative**
+    
+    - Strict, conventional categorization
+    - Follows standard file type groupings
+    - Minimal creative interpretation
+    
+    Best for: Financial documents, legal files, structured archives
+  </Tab>
+  
+  <Tab title="Medium (0.4-0.6)">
+    **Balanced**
+    
+    - Mix of standard and contextual grouping
+    - Recognizes common patterns
+    - Moderate semantic understanding
+    
+    Best for: General use, mixed file types
+  </Tab>
+  
+  <Tab title="High (0.7-1.0)">
+    **Creative & Contextual**
+    
+    - Finds novel patterns and relationships
+    - Deep semantic analysis
+    - More abstract categorization
+    
+    Best for: Creative projects, research, exploratory organization
+  </Tab>
+</Tabs>
+
+## Output Format
+
+The AI returns a structured JSON response:
+
+```json
+{
+  "folders": [
+    {
+      "name": "Finance",
+      "description": "Financial documents and records",
+      "tags": ["Blue"],
+      "comment": "Q1 2026 financial records",
+      "rule_id": "learned-rule-123",
+      "subfolders": [
+        {
+          "name": "Invoices",
+          "files": [
+            {
+              "filename": "invoice_jan.pdf",
+              "tags": ["Green", "Paid"],
+              "comment": "January vendor invoice"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "unorganized": [
+    {
+      "filename": "unclear_file.tmp",
+      "reason": "Temporary file with no clear purpose"
+    }
+  ],
+  "notes": "Organized by vendor and payment status"
+}
+```
+
+<Note>
+The `rule_id` field tracks which learned pattern was applied, enabling feedback loops with The Learnings system.
+</Note>
+
+## Validation & Safety
+
+Before applying changes, the system validates:
+
+<Accordion title="Validation Checklist">
+  - ✓ All input files appear exactly once in output
+  - ✓ Every file has a `tags` array with 1-3 tags (if tagging enabled)
+  - ✓ Folder depth ≤ 3 levels
+  - ✓ Top-level folders ≤ configured limit
+  - ✓ No folder name matches an existing file
+  - ✓ No empty folders
+  - ✓ All filenames match input exactly (unless renaming enabled)
+  - ✓ Custom user instructions followed
+  - ✓ Exclusion rules respected
+</Accordion>
+
+## Performance Optimization
+
+### Steady Progress Animation
+
+During AI processing, Sorty maintains smooth progress:
+
+```swift
+// Ensures progress keeps moving even during pauses
+steadyProgressTimer.start(interval: .milliseconds(500)) {
+    if timeSinceLastChunk > 1.0 {
+        progress = min(0.82, progress + 0.005)
+    }
+}
+```
+
+### Streaming Display Throttling
+
+UI updates are throttled to prevent layout thrashing:
+
+```swift
+private let displayUpdateInterval: TimeInterval = 0.3 // 300ms throttle
+```
+
+<Tip>
+This prevents excessive re-renders while maintaining responsive feedback.
+</Tip>
+
+## Related Features
+
+<CardGroup cols={2}>
+  <Card title="The Learnings" icon="brain" href="/features/the-learnings">
+    Passive learning system that improves organization over time
+  </Card>
+  
+  <Card title="Personas" icon="user-group" href="/features/personas">
+    Customize organization behavior for different workflows
+  </Card>
+  
+  <Card title="AI Providers" icon="robot" href="/features/ai-providers">
+    Configure OpenAI, Anthropic, Ollama, or Apple Intelligence
+  </Card>
+  
+  <Card title="Duplicate Detection" icon="clone" href="/features/duplicate-detection">
+    Find and merge duplicate files before organizing
+  </Card>
+</CardGroup>

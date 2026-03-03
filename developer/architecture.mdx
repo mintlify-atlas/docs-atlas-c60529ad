@@ -1,0 +1,516 @@
+---
+title: 'Architecture'
+description: 'Project structure, MVVM patterns, and data flow in Sorty'
+---
+
+## Overview
+
+Sorty is built with a modern Swift architecture using MVVM + Service Layers, targeting macOS 15+ with Swift 6.0. The app uses Swift Package Manager for dependency management and follows strict concurrency patterns with `@MainActor` for thread safety.
+
+## Project Structure
+
+The codebase is organized into three main targets:
+
+```
+Sources/
+├── SortyApp/           # App entry point, AppCoordinator
+│   └── SortyApp.swift  # Main App struct, environment object setup
+├── SortyLib/           # Core library (AI, Models, Views, Services)
+│   ├── AI/             # AI clients, prompts, parsers
+│   ├── FileSystem/     # File operations, bookmarks, security
+│   ├── Models/         # Data models, organization plans
+│   ├── Services/       # Business logic, model catalog
+│   ├── ViewModels/     # Presentation logic
+│   ├── Views/          # SwiftUI views and components
+│   ├── Managers/       # High-level orchestrators
+│   ├── Organizer/      # Core organization workflow
+│   ├── Learnings/      # Continuous learning system
+│   ├── Utilities/      # Helpers, security, deeplinks
+│   └── FinderExtension/# Finder integration, automation
+└── LearningsCLI/       # CLI tool implementation
+```
+
+See `Package.swift:24-89` for complete target definitions.
+
+## MVVM Architecture
+
+### State Management
+
+Sorty uses a reactive MVVM pattern with the following key patterns:
+
+- **@MainActor classes** for thread safety
+- **@EnvironmentObject** for dependency injection from `SortyApp`
+- **ObservableObject** for reactive UI updates
+- **Managers** handle business logic, **ViewModels** handle presentation
+
+### Example: Manager Pattern
+
+```swift
+@MainActor
+class SettingsViewModel: ObservableObject {
+    @Published var config: AIConfig
+    
+    func updateProvider(_ provider: AIProvider) async {
+        config.provider = provider
+        try? await configure()
+    }
+}
+```
+
+Managers are injected as environment objects in `SortyApp.swift:72-87`:
+
+```swift
+@StateObject private var settingsViewModel = SettingsViewModel()
+@StateObject private var personaManager = PersonaManager()
+@StateObject private var watchedFoldersManager = WatchedFoldersManager()
+@StateObject private var exclusionRules = ExclusionRulesManager()
+// ... more managers
+
+// Then injected into views:
+.environmentObject(settingsViewModel)
+.environmentObject(personaManager)
+```
+
+## Data Flow
+
+The complete organization workflow follows this pipeline:
+
+```
+View → ViewModel/Manager → FolderOrganizer → AIClient → OrganizationPlan → Preview → Apply
+```
+
+### Detailed Flow
+
+<Steps>
+  <Step title="User Initiates Organization">
+    User selects a folder in `OrganizeView` and clicks "Organize"
+    
+    ```swift
+    Button("Organize") {
+        Task {
+            try await organizer.organize(
+                directory: selectedFolder,
+                customPrompt: customInstructions
+            )
+        }
+    }
+    ```
+  </Step>
+
+  <Step title="Scan Phase">
+    `FolderOrganizer` scans the directory using `DirectoryScanner`
+    
+    ```swift
+    // FolderOrganizer.swift:1220
+    private func scanPhase(directory: URL) async throws -> [FileItem] {
+        updateState(.scanning, stage: "Scanning directory...", progress: 0.05)
+        
+        let filesFound = try await scanner.scanDirectory(
+            at: directory,
+            deepScan: aiConfig?.enableDeepScan ?? false
+        )
+        
+        return files
+    }
+    ```
+  </Step>
+
+  <Step title="AI Analysis">
+    Files are sent to the AI client for organization analysis
+    
+    ```swift
+    // FolderOrganizer.swift:1291
+    private func aiAnalysisPhase(
+        files: [FileItem],
+        directory: URL,
+        customPrompt: String?,
+        temperature: Double?,
+        duplicateContext: String
+    ) async throws -> (OrganizationPlan, String, String?, [String: Data]) {
+        let plan = try await aiClient.analyze(
+            files: files,
+            customInstructions: instructions,
+            personaPrompt: personaPrompt,
+            temperature: temperature
+        )
+        return plan
+    }
+    ```
+  </Step>
+
+  <Step title="Plan Validation">
+    The plan is validated and enhanced with safety checks
+    
+    ```swift
+    // FolderOrganizer.swift:1171
+    let validatedPlan = try await validationPhase(
+        plan: plan,
+        files: filesWithHashes,
+        directory: directory,
+        instructions: instructions,
+        personaPrompt: personaPrompt,
+        temperature: temperature
+    )
+    ```
+  </Step>
+
+  <Step title="Preview State">
+    Organizer transitions to `.ready` state with the validated plan
+    
+    ```swift
+    updateState(.ready, stage: "Ready!", progress: 1.0)
+    currentPlan = validatedPlan
+    
+    NotificationManager.shared.show(
+        .previewReady(folderName: directory.lastPathComponent)
+    )
+    ```
+  </Step>
+
+  <Step title="User Applies Changes">
+    User reviews in `PreviewView` and applies the organization
+    
+    ```swift
+    Button("Apply") {
+        Task {
+            try await organizer.applyPlan()
+        }
+    }
+    ```
+  </Step>
+</Steps>
+
+## AI Provider System
+
+All AI providers implement the `AIClientProtocol` interface:
+
+```swift
+// Sources/SortyLib/AI/AIClientProtocol.swift:18-25
+public protocol AIClientProtocol: Sendable {
+    func analyze(files: [FileItem], customInstructions: String?, 
+                 personaPrompt: String?, temperature: Double?) async throws -> OrganizationPlan
+    func analyzeWithImages(files: [FileItem], imageData: [String: Data], 
+                          customInstructions: String?, personaPrompt: String?, 
+                          temperature: Double?) async throws -> OrganizationPlan
+    func generateText(prompt: String, systemPrompt: String?) async throws -> String
+    func checkHealth() async throws
+    var config: AIConfig { get }
+    @MainActor var streamingDelegate: StreamingDelegate? { get set }
+}
+```
+
+### Factory Pattern
+
+Clients are created through `AIClientFactory` which handles provider-specific instantiation:
+
+```swift
+// Sources/SortyLib/AI/AIClientFactory.swift:10-33
+public struct AIClientFactory {
+    public static func createClient(config: AIConfig) throws -> AIClientProtocol {
+        switch config.provider {
+        case .openAI, .groq, .openAICompatible, .openRouter, .ollama, .gemini:
+            return OpenAIClient(config: config)
+            
+        case .githubCopilot:
+            return GitHubCopilotClient(config: config)
+            
+        case .anthropic:
+            return AnthropicClient(config: config)
+            
+        case .appleFoundationModel:
+            #if canImport(FoundationModels) && os(macOS)
+            if #available(macOS 26.0, *) {
+                if AppleFoundationModelClient.isAvailable() {
+                    return AppleFoundationModelClient(config: config)
+                }
+            }
+            #endif
+            throw AIClientError.apiError(
+                statusCode: 501, 
+                message: "Apple Intelligence is not supported on this version of macOS."
+            )
+        }
+    }
+}
+```
+
+### Streaming Support
+
+AI clients support streaming responses via the `StreamingDelegate` protocol:
+
+```swift
+@MainActor
+public protocol StreamingDelegate: AnyObject {
+    func didReceiveChunk(_ chunk: String)
+    func didComplete(content: String)
+    func didFail(error: Error)
+}
+```
+
+The `FolderOrganizer` implements this delegate to provide real-time progress updates:
+
+```swift
+// FolderOrganizer.swift:638-686
+public nonisolated func didReceiveChunk(_ chunk: String) {
+    Task { @MainActor in
+        guard !self.isCancellationRequested else { return }
+        
+        self.streamingContent += chunk
+        self.lastChunkTime = Date()
+        
+        if self.liveInsightsEnabled {
+            self.scheduleDisplayUpdate(for: self.streamingContent)
+            self.extractInsightsIfNeeded()
+        }
+    }
+}
+```
+
+## Core Models
+
+### OrganizationPlan
+
+The central data structure representing an AI-generated organization proposal:
+
+```swift
+// Sources/SortyLib/Models/OrganizationPlan.swift:16-56
+public struct OrganizationPlan: Codable, Identifiable, Hashable, Sendable {
+    public let id: UUID
+    public var suggestions: [FolderSuggestion]
+    public var unorganizedFiles: [FileItem]
+    public var unorganizedDetails: [UnorganizedFile]
+    public var notes: String
+    public var timestamp: Date
+    public var version: Int
+    public var generationStats: GenerationStats?
+    
+    public var totalFiles: Int {
+        suggestions.reduce(0) { $0 + $1.totalFileCount } + unorganizedFiles.count
+    }
+    
+    public var totalFolders: Int {
+        func countFolders(_ folders: [FolderSuggestion]) -> Int {
+            folders.count + folders.reduce(0) { $0 + countFolders($1.subfolders) }
+        }
+        return countFolders(suggestions)
+    }
+}
+```
+
+### FolderSuggestion
+
+Represents a folder with files, subfolders, and metadata:
+
+```swift
+// Sources/SortyLib/Models/FolderSuggestion.swift:76-130
+public struct FolderSuggestion: Codable, Identifiable, Hashable, Sendable {
+    public let id: UUID
+    public var folderName: String
+    public var description: String
+    public var files: [FileItem]
+    public var subfolders: [FolderSuggestion]
+    public var reasoning: String
+    
+    // Smart renaming support
+    public var fileRenameMappings: [FileRenameMapping]
+    
+    // Tagging support
+    public var fileTagMappings: [FileTagMapping]
+    
+    // Folder metadata
+    public var tags: [String]
+    public var comment: String?
+    
+    // Semantic analysis metadata
+    public var semanticTags: [String]
+    public var confidenceScore: Double?
+    
+    // Learnings & Rule support
+    public var ruleId: String?
+}
+```
+
+### AIConfig
+
+Configuration for AI provider settings:
+
+```swift
+// Sources/SortyLib/Models/AIConfig.swift:467-738
+public struct AIConfig: Codable, Sendable, Equatable {
+    public var provider: AIProvider
+    public var apiURL: String?
+    public var apiKey: String?
+    public var model: String
+    public var temperature: Double
+    
+    // Advanced Settings
+    public var requestTimeout: TimeInterval
+    public var enableStreaming: Bool
+    public var requiresAPIKey: Bool
+    public var enableReasoning: Bool
+    
+    // Organization settings
+    public var mode: OrganizationMode
+    public var enableDeepScan: Bool
+    public var enableSmartRename: Bool
+    public var detectDuplicates: Bool
+    public var enableFileTagging: Bool
+    public var maxTopLevelFolders: Int
+    
+    // Vision & Multimodal
+    public var enableVision: Bool
+    public var namingStyle: NamingStyle
+    public var visionBatchSize: Int
+}
+```
+
+## Organization State Machine
+
+The `FolderOrganizer` uses a state machine pattern to manage the organization workflow:
+
+```swift
+// FolderOrganizer.swift:13-46
+public enum OrganizationState: Equatable, Sendable {
+    case idle
+    case scanning      // Scanning directory for files
+    case organizing    // AI is analyzing and generating plan
+    case ready         // Plan is ready for user review
+    case applying      // Applying changes to filesystem
+    case completed     // Organization complete
+    case error(Error)  // Error occurred
+    
+    public var isOperationInProgress: Bool {
+        switch self {
+        case .scanning, .organizing, .ready, .applying:
+            return true
+        case .idle, .completed, .error:
+            return false
+        }
+    }
+}
+```
+
+<Note>
+  The state machine enforces valid transitions using `OrganizationState.canTransition(from:to:)` to prevent invalid state changes. See `FolderOrganizer.swift:49-126` for full validation logic.
+</Note>
+
+## Dependency Injection
+
+Dependencies flow from `SortyApp` down through the view hierarchy:
+
+```swift
+// SortyApp.swift:172-193
+private func mainWindowRootView(launchRequest: Binding<WindowLaunchRequest?>) -> some View {
+    MainWindowRootView(
+        launchRequest: launchRequest.wrappedValue,
+        coordinator: coordinator
+    )
+    .environmentObject(settingsViewModel)
+    .environmentObject(personaManager)
+    .environmentObject(customPersonaStore)
+    .environmentObject(watchedFoldersManager)
+    .environmentObject(storageLocationsManager)
+    .environmentObject(exclusionRules)
+    .environmentObject(extensionListener)
+    .environmentObject(deeplinkHandler)
+    .environmentObject(learningsManager)
+    .environmentObject(automationManager)
+    .environmentObject(notificationSettings)
+    .environmentObject(loginItemManager)
+    .environmentObject(namingPresetManager)
+    .environmentObject(globalShortcutManager)
+    .environmentObject(steeringPromptManager)
+    .environmentObject(menuBarController)
+}
+```
+
+This allows child views to access managers without prop drilling:
+
+```swift
+struct OrganizeView: View {
+    @EnvironmentObject var settingsViewModel: SettingsViewModel
+    @EnvironmentObject var personaManager: PersonaManager
+    @EnvironmentObject var exclusionRules: ExclusionRulesManager
+    
+    var body: some View {
+        // Use managers directly
+        Text("Using provider: \(settingsViewModel.config.provider.displayName)")
+    }
+}
+```
+
+## Swift Concurrency
+
+Sorty uses Swift 6 with strict concurrency checking:
+
+```swift
+// Package.swift:46
+.unsafeFlags(["-strict-concurrency=minimal"])
+```
+
+### Key Patterns
+
+**MainActor for UI Updates**:
+```swift
+@MainActor
+class FolderOrganizer: ObservableObject {
+    @Published var state: OrganizationState = .idle
+    
+    func organize(directory: URL) async throws {
+        // All UI updates happen on MainActor
+        state = .scanning
+    }
+}
+```
+
+**Sendable Types**:
+```swift
+public struct OrganizationPlan: Codable, Identifiable, Hashable, Sendable {
+    // Safe to pass across actor boundaries
+}
+
+public protocol AIClientProtocol: Sendable {
+    // Client can be shared safely
+}
+```
+
+**Nonisolated Functions**:
+```swift
+public nonisolated func didReceiveChunk(_ chunk: String) {
+    Task { @MainActor in
+        // Hop to MainActor for UI updates
+        self.streamingContent += chunk
+    }
+}
+```
+
+## Build Configuration
+
+Sorty uses different optimization settings for debug and release builds:
+
+```swift
+// Package.swift:38-51
+swiftSettings: [
+    // Debug: Fast incremental build
+    .unsafeFlags(["-Onone", "-enable-batch-mode"], .when(configuration: .debug)),
+    
+    // Release: Full optimization with whole-module
+    .unsafeFlags(["-O", "-whole-module-optimization"], .when(configuration: .release)),
+    
+    // Suppress warnings to reduce compile output
+    .unsafeFlags(["-suppress-warnings"]),
+    
+    // Swift 6 strict concurrency - minimal checking to reduce type-check cost
+    .unsafeFlags(["-strict-concurrency=minimal"]),
+],
+linkerSettings: [
+    // Skip deduplication in debug for faster linking
+    .unsafeFlags(["-Xlinker", "-no_deduplicate"], .when(configuration: .debug)),
+]
+```
+
+## Next Steps
+
+- Learn how to [add new AI providers](/developer/ai-providers)
+- Read the [contribution guidelines](/developer/contributing)
+- Explore the [fast development loop](https://github.com/shirishpothi/Sorty/blob/main/docs/agent-guides/fast-loop.md)

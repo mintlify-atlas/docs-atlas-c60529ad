@@ -1,0 +1,514 @@
+---
+title: Storage Locations
+description: Define custom destinations for organized files outside the source directory
+---
+
+Storage Locations allow you to route organized files to external destinations like backup drives, network shares, or specific folders. This enables advanced workflows where files are distributed across multiple locations based on content or file type.
+
+## Overview
+
+Storage Locations extend Sorty's organization capabilities beyond the source folder:
+
+- **External destinations**: Organize files to drives, network shares, or any accessible path
+- **AI-aware routing**: The AI can suggest files go to specific storage locations
+- **Prompt integration**: Reference storage locations in custom instructions
+- **Security-scoped access**: Persistent permissions for external volumes
+
+<Note>
+  Storage Locations are **optional**. If none are configured, all organization happens within the source folder.
+</Note>
+
+---
+
+## Setting Up Storage Locations
+
+<Steps>
+  <Step title="Navigate to Storage Locations">
+    From the sidebar, select **Storage Locations** or go to **Settings → Organization Rules → Storage Locations**.
+  </Step>
+  <Step title="Add Location">
+    Click **Add Location** and select a destination folder.
+  </Step>
+  <Step title="Configure Details">
+    - **Name**: Descriptive label for the AI (e.g., "Backup Drive", "Project Archive")
+    - **Path**: Full path to the destination
+    - **Purpose**: Optional description to guide AI routing
+  </Step>
+  <Step title="Grant Permissions">
+    Sorty creates a security-scoped bookmark to maintain access across app restarts.
+  </Step>
+</Steps>
+
+---
+
+## How AI Uses Storage Locations
+
+### Automatic Routing
+
+When storage locations are configured, the AI can suggest files be moved to external destinations:
+
+<CodeGroup>
+```yaml Example Organization Plan
+Storage Locations:
+  - Backup Drive (/Volumes/Backup)
+  - Project Archive (/Users/me/Archive)
+
+AI Suggestion:
+  /Volumes/Backup/Financial/
+    - tax_return_2023.pdf
+    - receipts_q1_2024.zip
+  
+  /Users/me/Archive/Projects/
+    - old_project_v1.zip
+    - deprecated_assets.tar
+```
+</CodeGroup>
+
+The AI considers:
+- File type and content
+- Storage location purpose descriptions
+- Custom instructions mentioning storage locations
+- Whether the file fits the location's intended use
+
+### Prompt Integration
+
+Reference storage locations in custom instructions:
+
+```markdown Example Prompts
+"Move all financial documents to the Backup Drive storage location."
+
+"Archive completed projects to the Project Archive location."
+
+"Keep active files in the source folder, but move files older than
+6 months to the Archive Drive."
+```
+
+<Tip>
+  Use the **exact name** you gave the storage location in your prompts for best results.
+</Tip>
+
+---
+
+## Storage Location Configuration
+
+Each storage location has independent settings:
+
+### Basic Settings
+
+| Field | Description | Required |
+|-------|-------------|----------|
+| **Name** | Label visible to AI and in UI | Yes |
+| **Path** | Absolute path to destination | Yes |
+| **Purpose** | Description to guide AI routing | Optional |
+| **Icon** | Visual identifier in UI | Optional |
+| **Color** | Accent color for organization view | Optional |
+
+### Advanced Settings
+
+#### Purpose Descriptions
+
+Provide context for the AI to make better routing decisions:
+
+```yaml Example Purposes
+Backup Drive:
+  Purpose: "Long-term storage for financial records, tax documents,
+           and important scans. Organized by year and category."
+
+Project Archive:
+  Purpose: "Completed projects and deprecated code. Files are rarely
+           accessed but preserved for reference."
+
+Media Storage:
+  Purpose: "High-resolution photos and videos. Organized by date and
+           event. Used for photography portfolio work."
+```
+
+<Accordion title="When to Use Purpose Descriptions">
+  - Multiple storage locations with overlapping use cases
+  - Complex routing logic based on content type
+  - Ensuring certain file types always go to specific locations
+  - Distinguishing between active vs. archived storage
+</Accordion>
+
+---
+
+## Security-Scoped Bookmarks
+
+Sorty uses security-scoped bookmarks to maintain persistent access to external locations.
+
+### How Bookmarks Work
+
+1. When you add a storage location, Sorty requests permission to access the path
+2. macOS grants permission and Sorty creates an encrypted bookmark
+3. The bookmark is stored in UserDefaults and restored on app launch
+4. Sorty automatically validates and refreshes stale bookmarks
+
+### Access Status
+
+| Status | Meaning | Action Required |
+|--------|---------|----------------|
+| **Active** ✓ | Full access granted | None |
+| **Stale** ⚠️ | Bookmark needs refresh | Sorty auto-refreshes |
+| **Lost** ✗ | Access denied or path moved | Reauthorize location |
+| **Offline** 📡 | Network/volume unavailable | Reconnect or wait |
+
+### Reauthorizing Locations
+
+If a storage location loses access:
+
+<Steps>
+  <Step title="Check Connection">
+    Verify the drive is mounted or network share is reachable.
+  </Step>
+  <Step title="Reauthorize">
+    Click the **⚠️ Reauthorize** button on the location card.
+  </Step>
+  <Step title="Select Path Again">
+    Choose the same folder in the file picker to recreate the bookmark.
+  </Step>
+  <Step title="Verify Status">
+    The status should change to **Active** ✓.
+  </Step>
+</Steps>
+
+<Warning>
+  **External drives must be mounted** for Sorty to access storage locations on them. Safely eject drives only when not organizing files.
+</Warning>
+
+---
+
+## Organization Behavior
+
+### Path Resolution
+
+Sorty intelligently resolves storage location references:
+
+<CodeGroup>
+```yaml AI Response Examples
+# Absolute path (explicit)
+/Volumes/Backup/Financial/2024/
+  → Resolves to exact path
+
+# Relative to storage location (implicit)
+Backup Drive/Financial/2024/
+  → Resolves to /Volumes/Backup/Financial/2024/
+
+# Nested within source (no storage location)
+Documents/Financial/
+  → Resolves to <source>/Documents/Financial/
+```
+</CodeGroup>
+
+### Validation Rules
+
+Before moving files, Sorty validates the organization plan:
+
+1. **Storage location exists** and is accessible
+2. **Path is writable** (permissions check)
+3. **Source files not in storage location** (prevents circular moves)
+4. **Destination has sufficient space** (optional check)
+
+If validation fails, Sorty shows an error and offers to:
+- Retry with adjusted paths
+- Skip storage location routing
+- Cancel the operation
+
+---
+
+## Use Cases
+
+### Backup Drive for Important Files
+
+```yaml Configuration
+Name: Backup Drive
+Path: /Volumes/Backup
+Purpose: "Financial records, tax documents, and scanned receipts"
+
+Custom Prompt:
+"Move all financial documents (invoices, receipts, tax forms) to
+the Backup Drive storage location. Organize by year and type."
+```
+
+**Result**: Financial files are automatically routed to the backup drive while other files stay in the source folder.
+
+### Project Archive for Old Code
+
+```yaml Configuration
+Name: Project Archive
+Path: /Users/me/Archive/Projects
+Purpose: "Completed or deprecated code projects"
+
+Custom Prompt:
+"Archive any project folders with 'old', 'deprecated', or version
+numbers older than v1.0 to the Project Archive location."
+```
+
+**Result**: Old projects are moved to long-term storage, keeping your active workspace clean.
+
+### Media Storage for High-Res Photos
+
+```yaml Configuration
+Name: Media Storage
+Path: /Volumes/Photos
+Purpose: "High-resolution RAW photos and edited exports"
+
+Custom Prompt:
+"Move all RAW image files (.CR2, .NEF, .ARW) to the Media Storage
+location. Organize by date taken using EXIF data."
+```
+
+**Result**: Large RAW files are automatically stored on a dedicated drive, separate from smaller JPEGs.
+
+### Network Share for Team Projects
+
+```yaml Configuration
+Name: Team Share
+Path: /Volumes/CompanyNAS/Projects
+Purpose: "Shared project files for the design team"
+
+Custom Prompt:
+"Move all client project folders to the Team Share location.
+Organize by client name, then project date."
+```
+
+**Result**: Completed client work is routed to the team's network storage for collaboration.
+
+---
+
+## Advanced Features
+
+### Multiple Storage Locations
+
+You can configure unlimited storage locations:
+
+<CodeGroup>
+```yaml Example Multi-Location Setup
+Storage Locations:
+  1. Backup Drive (/Volumes/Backup)
+     Purpose: Financial and legal documents
+  
+  2. Media Storage (/Volumes/Photos)
+     Purpose: High-res photos and videos
+  
+  3. Project Archive (/Users/me/Archive)
+     Purpose: Old code projects
+  
+  4. Team Share (smb://server/projects)
+     Purpose: Collaborative work files
+```
+</CodeGroup>
+
+The AI will route files based on content, purpose, and your instructions.
+
+### Fallback Behavior
+
+If a storage location is unavailable:
+
+1. Sorty detects the location is offline
+2. Offers to organize files to source folder instead
+3. Logs which files were meant for the unavailable location
+4. You can re-run organization later when the location is available
+
+<Tip>
+  Enable **Automation Notifications** to be alerted when watched folders can't access storage locations.
+</Tip>
+
+### Storage Location in Preview
+
+The organization preview shows where files will be moved:
+
+<CodeGroup>
+```swift Preview Indicators
+📁 Documents/
+   └─ file1.pdf
+
+💾 Backup Drive/Financial/
+   └─ tax_form.pdf
+   └─ receipt_march.jpg
+
+🖼 Media Storage/Photos/2024/
+   └─ IMG_1234.CR2
+   └─ IMG_1235.CR2
+```
+</CodeGroup>
+
+Storage locations are visually distinguished with icons and colors.
+
+---
+
+## Performance Considerations
+
+### File Transfer Speed
+
+Organizing to external locations involves file I/O:
+
+| Destination Type | Typical Speed | Recommendation |
+|------------------|---------------|----------------|
+| **Local SSD** | 500+ MB/s | Best performance |
+| **External USB 3.0** | 100-200 MB/s | Good for most files |
+| **Network Share (Ethernet)** | 50-100 MB/s | May take time for large files |
+| **Network Share (WiFi)** | 10-50 MB/s | Avoid for huge files |
+| **Cloud Sync (Dropbox, etc.)** | Varies | May trigger background sync |
+
+### Large File Handling
+
+For files over 1 GB:
+
+- Sorty shows progress indicators during transfer
+- You can cancel mid-transfer (partial files are cleaned up)
+- Consider using **Dry Run** mode to preview without moving
+
+<Warning>
+  **Avoid organizing to cloud-synced folders** (Dropbox, iCloud Drive) with large files. Syncing happens in the background and may conflict with file operations.
+</Warning>
+
+---
+
+## Deeplink Automation
+
+Control storage locations via URL schemes:
+
+```bash Deeplink Examples
+# Open storage locations view
+open "sorty://storage-locations"
+
+# Add a storage location (not yet supported)
+# Coming in a future release
+```
+
+### CLI Integration
+
+```bash CLI Commands (Planned)
+# Add storage location
+sorty storage add /Volumes/Backup --name="Backup Drive"
+
+# List storage locations
+sorty storage list
+
+# Remove storage location
+sorty storage remove "Backup Drive"
+```
+
+<Note>
+  CLI commands for storage locations are **planned** but not yet implemented. Use the GUI for now.
+</Note>
+
+---
+
+## Troubleshooting
+
+### Location Not Accessible
+
+**Symptoms**: "Lost" or "Offline" status indicator.
+
+<Accordion title="Solutions">
+  1. Verify the drive is mounted (check Finder sidebar)
+  2. For network shares, check network connectivity
+  3. Ensure the path still exists (folder not renamed/deleted)
+  4. Reauthorize the location by clicking the warning icon
+  5. Check macOS privacy settings for disk access permissions
+</Accordion>
+
+### Files Not Moving to Storage Location
+
+**Symptoms**: Files organized to source folder instead of storage location.
+
+<Accordion title="Solutions">
+  1. Check storage location status is **Active** ✓
+  2. Verify your custom prompt references the location name correctly
+  3. Test with a small batch first to confirm routing works
+  4. Check destination has sufficient free space
+  5. Review the organization preview to see AI's routing decisions
+</Accordion>
+
+### Permission Denied Errors
+
+**Symptoms**: "Permission denied" when organizing to storage location.
+
+<Accordion title="Solutions">
+  1. Grant Full Disk Access: **System Settings → Privacy & Security → Full Disk Access**
+  2. For external drives, ensure they're not read-only (Check Info in Finder)
+  3. For network shares, verify write permissions for your user account
+  4. Try creating a test file in the destination manually to confirm access
+  5. Reauthorize the storage location to refresh permissions
+</Accordion>
+
+### Stale Bookmarks
+
+**Symptoms**: Frequent "Stale" warnings or need to reauthorize.
+
+**Causes**:
+- Drive was renamed or path changed
+- Volume UUID changed (reformatted drive)
+- macOS security policies tightened
+
+<Accordion title="Solutions">
+  1. Keep drives mounted consistently (don't frequently eject/reconnect)
+  2. Avoid renaming drives or changing paths after adding to Sorty
+  3. For removable drives, use the same USB port consistently
+  4. Reauthorize once and bookmarks should remain stable
+</Accordion>
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Descriptive Names" icon="tag">
+    Use clear, specific names for storage locations ("Tax Backup" not "Drive 2").
+  </Card>
+  <Card title="Purposeful Routing" icon="bullseye">
+    Define clear purposes so the AI makes consistent routing decisions.
+  </Card>
+  <Card title="Test First" icon="vial">
+    Preview organization to verify files route to the correct locations.
+  </Card>
+  <Card title="Monitor Space" icon="hard-drive">
+    Check destination drive space regularly to avoid failed transfers.
+  </Card>
+</CardGroup>
+
+<Warning>
+  **Do not remove storage locations** while organization is in progress. Cancel the operation first, then remove the location.
+</Warning>
+
+---
+
+## Integration with Other Features
+
+### Watched Folders + Storage Locations
+
+Combine watched folders with storage locations for automatic external routing:
+
+```yaml Example: Auto-Backup Downloads
+Watched Folder: ~/Downloads
+Custom Prompt: "Move all documents to the Backup Drive."
+Storage Location: Backup Drive (/Volumes/Backup)
+
+Result: Documents downloaded to ~/Downloads are automatically
+        organized to /Volumes/Backup/Documents/
+```
+
+### Exclusion Rules + Storage Locations
+
+Exclude storage location paths from being re-organized:
+
+```yaml Recommended Exclusion Rule
+Type: Path Contains
+Pattern: /Volumes/Backup
+Description: "Prevent re-organizing files already in Backup Drive"
+```
+
+This ensures files already in storage locations aren't included when you organize the parent folder.
+
+### Personas + Storage Locations
+
+Personas can influence storage location routing:
+
+- **Developer persona**: Routes old projects to archive storage
+- **Photographer persona**: Sends RAW files to media storage
+- **Business persona**: Moves financial files to backup drive
+
+<Tip>
+  Create a custom persona with storage location preferences baked into the system prompt for consistent routing behavior.
+</Tip>

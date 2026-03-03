@@ -1,0 +1,405 @@
+---
+title: 'Troubleshooting'
+description: 'Common issues and solutions for Sorty'
+icon: 'wrench'
+---
+
+## Quick Diagnostics
+
+Before diving into specific issues, run these quick checks:
+
+<Steps>
+  <Step title="Check AI Provider">
+    Go to **Settings → AI Provider** and verify your configuration is correct.
+  </Step>
+  <Step title="Test Internet Connection">
+    Cloud AI providers require an active internet connection.
+  </Step>
+  <Step title="Review Recent History">
+    Check **History** (⇧⌘H) for any failed operations or error messages.
+  </Step>
+  <Step title="Check Console Logs">
+    Open **Console.app** and filter for "Sorty" to see detailed error logs.
+  </Step>
+</Steps>
+
+## AI & Organization Issues
+
+### AI Not Responding
+
+<AccordionGroup>
+  <Accordion title="No response from AI provider" icon="cloud-xmark">
+    **Symptoms**: Organization hangs, no progress, timeout errors.
+    
+    **Solutions**:
+    - ✓ Check your internet connection
+    - ✓ Verify your API Key is correct in Settings
+    - ✓ Ensure the API URL is correct for your provider
+    - ✓ Check if the selected model is available
+    - ✓ Try increasing the Request Timeout in Advanced Settings
+    - ✓ For Ollama: ensure the server is running (`ollama serve`)
+    
+    **For Ollama users**:
+    ```bash
+    # Check if Ollama is running
+    curl http://localhost:11434/api/tags
+    
+    # Start Ollama if not running
+    ollama serve
+    ```
+  </Accordion>
+  
+  <Accordion title="API key errors" icon="key">
+    **Symptoms**: "Invalid API key", "Authentication failed".
+    
+    **Solutions**:
+    - ✓ Regenerate your API key from your provider's dashboard
+    - ✓ Check for extra spaces or characters when pasting
+    - ✓ Verify the key has the correct permissions
+    - ✓ For OpenAI-compatible providers, ensure the base URL is correct
+    
+    <Tabs>
+      <Tab title="OpenAI">
+        Keys start with `sk-proj-` or `sk-`
+        
+        API URL: `https://api.openai.com/v1`
+      </Tab>
+      <Tab title="Anthropic">
+        Keys start with `sk-ant-`
+        
+        API URL: `https://api.anthropic.com/v1`
+      </Tab>
+      <Tab title="Groq">
+        Keys start with `gsk_`
+        
+        API URL: `https://api.groq.com/openai/v1`
+      </Tab>
+    </Tabs>
+  </Accordion>
+  
+  <Accordion title="Rate limit errors" icon="gauge-high">
+    **Symptoms**: "Rate limit exceeded", "Too many requests".
+    
+    **Solutions**:
+    - ✓ Wait a few minutes before retrying
+    - ✓ Upgrade your API plan for higher limits
+    - ✓ Reduce the number of files being organized at once
+    - ✓ Use exclusion rules to filter out unnecessary files
+    - ✓ Switch to Ollama for unlimited local processing
+  </Accordion>
+  
+  <Accordion title="Slow organization" icon="clock">
+    **Symptoms**: Organization takes a long time to complete.
+    
+    **Solutions**:
+    - ✓ Disable Deep Scan for faster processing
+    - ✓ Reduce the number of files by using exclusions
+    - ✓ Enable Streaming for responsive feedback
+    - ✓ Consider using a faster AI model
+    - ✓ Organize smaller batches of files
+    
+    **Performance Tips**:
+    | File Count | Expected Time | Recommendation |
+    |------------|---------------|----------------|
+    | < 100 files | 10-30 seconds | Normal mode |
+    | 100-500 files | 30-90 seconds | Disable Deep Scan |
+    | 500+ files | 2-5 minutes | Use exclusions, batch process |
+  </Accordion>
+</AccordionGroup>
+
+## File Operation Issues
+
+### Files Not Moving
+
+<AccordionGroup>
+  <Accordion title="Files remain in original location" icon="folder-xmark">
+    **Symptoms**: Organization completes but files don't move.
+    
+    **Solutions**:
+    - ✓ Check Exclusion Rules to ensure files aren't protected
+    - ✓ Verify you have write permissions for the directory
+    - ✓ Ensure the source files still exist
+    - ✓ Check for file locks (files open in other apps)
+    - ✓ Review Console.app for permission errors
+    
+    <Warning>
+      If files are open in other applications (e.g., Preview, Word), they cannot be moved. Close the files and try again.
+    </Warning>
+  </Accordion>
+  
+  <Accordion title="Permission denied errors" icon="lock">
+    **Symptoms**: "Operation not permitted", "Access denied".
+    
+    **Solutions**:
+    - ✓ Grant Full Disk Access in System Settings → Privacy & Security
+    - ✓ For Watched Folders: Remove and re-add the folder to refresh security bookmarks
+    - ✓ Ensure the app is running from `/Applications`
+    - ✓ Check if the target directory is on a network drive (may require additional permissions)
+  </Accordion>
+  
+  <Accordion title="Watched folders losing access" icon="eye-slash">
+    **Symptoms**: "Permission denied" for watched folders after restart.
+    
+    **Solutions**:
+    - ✓ **Move Sorty.app to `/Applications`** (required for persistent bookmarks)
+    - ✓ Remove the folder from Watched list and re-add it
+    - ✓ Check System Settings → Privacy & Security → Files and Folders
+    - ✓ Ensure the watched folder path hasn't changed
+    
+    <Info>
+      macOS App Sandbox requires apps to be in `/Applications` for security bookmarks to persist reliably.
+    </Info>
+  </Accordion>
+</AccordionGroup>
+
+## Finder & UI Issues
+
+### Tags Not Appearing
+
+<AccordionGroup>
+  <Accordion title="Finder tags not visible" icon="tag">
+    **Symptoms**: Files organized but tags don't show in Finder.
+    
+    **Solutions**:
+    - ✓ Ensure "Enable File Tagging" is ON in Settings
+    - ✓ Tags only apply after "Apply Changes" is clicked
+    - ✓ Refresh Finder (close and reopen the folder)
+    - ✓ Enable reasoning to verify AI is suggesting tags
+    - ✓ Check if tags are hidden in Finder's View Options
+    
+    **Verify tags from Terminal**:
+    ```bash
+    # List tags for a file
+    mdls -name kMDItemUserTags /path/to/file
+    ```
+  </Accordion>
+  
+  <Accordion title="Finder extension not showing" icon="puzzle-piece">
+    **Symptoms**: No "Organize with AI..." option in Finder context menu.
+    
+    <Warning>
+      The Finder extension is **disabled by default** via feature flag.
+    </Warning>
+    
+    **Enable the extension**:
+    1. Build and run the `SortyExtension` target in Xcode
+    2. Go to **System Settings → Privacy & Security → Extensions → Finder Extensions**
+    3. Enable **SortyExtension**
+    4. Restart Finder: `killall Finder`
+    
+    **Troubleshooting**:
+    - ✓ Verify App Groups are configured: `group.com.sorty.app`
+    - ✓ Check Console.app for extension errors
+    - ✓ Rebuild the extension target
+  </Accordion>
+</AccordionGroup>
+
+## Update Issues
+
+### Update Check Failures
+
+<AccordionGroup>
+  <Accordion title="Rate limit exceeded" icon="ban">
+    **Symptoms**: "Rate limit exceeded" when checking for updates.
+    
+    **Cause**: GitHub limits unauthenticated API requests to 60/hour.
+    
+    **Solutions**:
+    - ✓ Wait 60 minutes and retry
+    - ✓ Check [GitHub Releases](https://github.com/shirishpothi/Sorty/releases) manually
+    - ✓ Automatic checks are limited to once per 24 hours to avoid this issue
+  </Accordion>
+  
+  <Accordion title="Network errors" icon="wifi-slash">
+    **Symptoms**: "Network error", "Connection failed".
+    
+    **Solutions**:
+    - ✓ Check your internet connection
+    - ✓ Verify you can access GitHub in your browser
+    - ✓ Check firewall settings (allow connections to `api.github.com`)
+    - ✓ Try again later if GitHub is experiencing issues
+  </Accordion>
+  
+  <Accordion title="404 Not Found" icon="circle-xmark">
+    **Symptoms**: "No releases found", "404 error".
+    
+    **Cause**: The repository has no published releases yet.
+    
+    **Solutions**:
+    - ✓ This is normal for new installations
+    - ✓ Check the [releases page](https://github.com/shirishpothi/Sorty/releases) to see if any exist
+    - ✓ Build from source if you need the latest code
+  </Accordion>
+  
+  <Accordion title="Version parsing errors" icon="code">
+    **Symptoms**: "Invalid version format", "Cannot parse release".
+    
+    **Cause**: The release tag format may have changed.
+    
+    **Solutions**:
+    - ✓ Check the [releases page](https://github.com/shirishpothi/Sorty/releases) manually
+    - ✓ Compare your version in **About Sorty** with the latest release
+    - ✓ Report the issue on GitHub if the format is incorrect
+  </Accordion>
+</AccordionGroup>
+
+## The Learnings Issues
+
+### Authentication & Access
+
+<AccordionGroup>
+  <Accordion title="Biometric authentication failing" icon="fingerprint">
+    **Symptoms**: Touch ID/Face ID fails, can't access Learnings.
+    
+    **Solutions**:
+    - ✓ Verify Touch ID/Face ID is working in System Settings
+    - ✓ Try authenticating with your password instead
+    - ✓ Restart the app and try again
+    - ✓ Check Console.app for authentication errors
+  </Accordion>
+  
+  <Accordion title="Learning data not saving" icon="floppy-disk">
+    **Symptoms**: Corrections and feedback don't appear in Learnings.
+    
+    **Solutions**:
+    - ✓ Verify Learning is enabled (⇧⌘L → Check status)
+    - ✓ Ensure you've completed initial setup and granted consent
+    - ✓ Check if Learning is paused in Settings
+    - ✓ Verify encryption keys are in Keychain
+    
+    **CLI diagnostic**:
+    ```bash
+    learnings status
+    learnings stats
+    ```
+  </Accordion>
+  
+  <Accordion title="Session timeout too short" icon="clock">
+    **Symptoms**: Learnings dashboard locks too frequently.
+    
+    **Cause**: Automatic lock after 5 minutes of inactivity (security feature).
+    
+    **Solutions**:
+    - ✓ This is by design for security
+    - ✓ Use Touch ID/Face ID for quick re-authentication
+    - ✓ Keep the Learnings dashboard active if working with it
+  </Accordion>
+</AccordionGroup>
+
+## Duplicate Detection Issues
+
+### Safe Deletion Problems
+
+<AccordionGroup>
+  <Accordion title="Cannot restore deleted duplicates" icon="trash-arrow-up">
+    **Symptoms**: Deleted duplicates cannot be recovered.
+    
+    **Solutions**:
+    - ✓ Check History tab for restoration options
+    - ✓ Verify Safe Deletion was enabled (check session details)
+    - ✓ Look in the original locations for restored files
+    - ✓ Check if files were permanently deleted after confirmation
+    
+    <Warning>
+      Files are only permanently deleted after you confirm in the History view. Until then, they can be restored.
+    </Warning>
+  </Accordion>
+  
+  <Accordion title="Duplicate scan taking too long" icon="hourglass">
+    **Symptoms**: Duplicate detection runs for hours.
+    
+    **Solutions**:
+    - ✓ Reduce scanning depth in Duplicates settings
+    - ✓ Apply file type filters (e.g., only scan images)
+    - ✓ Exclude large directories (e.g., system folders)
+    - ✓ Scan smaller directories individually
+  </Accordion>
+</AccordionGroup>
+
+## Advanced Troubleshooting
+
+### Reset & Clean Install
+
+<Warning>
+  These actions will delete data. Backup important information first.
+</Warning>
+
+<Tabs>
+  <Tab title="Reset Settings">
+    ```bash
+    # Delete all preferences
+    defaults delete com.sorty.app
+    
+    # Restart Sorty
+    ```
+    
+    This preserves Learning data and History.
+  </Tab>
+  <Tab title="Clear Learning Data">
+    ```bash
+    # Using CLI
+    learnings clear
+    
+    # Or in app
+    # The Learnings (⇧⌘L) → Delete All Data
+    ```
+    
+    This permanently removes your Learning profile.
+  </Tab>
+  <Tab title="Clean Install">
+    ```bash
+    # 1. Delete the app
+    rm -rf /Applications/Sorty.app
+    
+    # 2. Delete all data
+    defaults delete com.sorty.app
+    rm -rf ~/Library/Caches/com.sorty.app
+    rm -rf ~/Library/Application\ Support/Sorty
+    
+    # 3. Remove Keychain items
+    # Open Keychain Access.app and search for "sorty"
+    # Delete all related items
+    
+    # 4. Reinstall from Releases or build from source
+    ```
+  </Tab>
+  <Tab title="View Logs">
+    ```bash
+    # Real-time logs
+    log stream --predicate 'subsystem == "com.sorty.app"' --level debug
+    
+    # Recent errors
+    log show --predicate 'subsystem == "com.sorty.app" && messageType == "error"' --last 1h
+    
+    # Export logs to file
+    log collect --predicate 'subsystem == "com.sorty.app"' --output sorty-logs.logarchive
+    ```
+  </Tab>
+</Tabs>
+
+## Still Having Issues?
+
+<CardGroup cols={2}>
+  <Card title="Bug Report" icon="bug" href="https://github.com/shirishpothi/Sorty/issues/new?template=bug_report.md">
+    Report bugs with detailed steps to reproduce
+  </Card>
+  <Card title="GitHub Discussions" icon="comments" href="https://github.com/shirishpothi/Sorty/discussions">
+    Ask questions and get community help
+  </Card>
+</CardGroup>
+
+### Information to Include
+
+When reporting issues, include:
+- macOS version
+- Sorty version (from About menu)
+- AI provider and model
+- Steps to reproduce
+- Error messages from Console.app
+- Screenshots if relevant
+
+```bash
+# Generate diagnostic info
+system_profiler SPSoftwareDataType SPHardwareDataType > system-info.txt
+log show --predicate 'subsystem == "com.sorty.app"' --last 1h > sorty-logs.txt
+```

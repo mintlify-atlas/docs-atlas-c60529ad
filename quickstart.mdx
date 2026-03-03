@@ -1,80 +1,313 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: "Quick Start"
+description: "Get your first folder organized with Sorty in under 5 minutes"
 ---
 
-## Get started in three steps
+# Quick Start Guide
 
-Get your documentation site running locally and make your first customization.
-
-### Step 1: Set up your local environment
-
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
-
-<CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
+This guide will walk you through organizing your first folder with Sorty. You'll learn the core workflow, preview AI-suggested organization, and apply changes safely.
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+  This guide assumes you've already [installed Sorty](/installation) and configured an AI provider. If you haven't, complete those steps first.
 </Note>
+
+---
+
+## Your First Organization
+
+Let's organize a folder in 5 simple steps.
+
+<Steps>
+  <Step title="Select a folder to organize">
+    Open Sorty and select a folder to organize:
+    
+    - Press **⌘O** (or click "Open Directory")
+    - Choose a folder (we recommend starting with Downloads or Desktop)
+    - The folder path will appear in the main view
+    
+    **Or** drag and drop a folder directly onto the Sorty window.
+    
+    <Note>
+      Start with a folder that has 20-50 files for the best first experience. Very large folders (500+ files) may take longer to process.
+    </Note>
+  </Step>
+  
+  <Step title="Choose a persona (optional)">
+    Personas customize the AI's organization logic for different workflows:
+    
+    - **General**: Standard categories (Documents, Media, Archives)
+    - **Developer**: Groups by project, language, and tech stack
+    - **Photographer**: Organizes by shoots, dates, camera metadata
+    - **Student**: Organizes by subject, course, semester
+    
+    Select a persona from the dropdown in Settings (⌘,), or leave it as **General** for now.
+    
+    <Note>
+      You can change personas at any time. Each watched folder can also have its own persona.
+    </Note>
+  </Step>
+  
+  <Step title="Start organization">
+    Click the **"Organize"** button (or press **⌘R**).
+    
+    Sorty will:
+    1. **Scan** your folder and collect file metadata
+    2. **Analyze** patterns using AI (naming conventions, file types, date patterns)
+    3. **Generate** a proposed folder structure with categories
+    4. **Display** a preview of the changes
+    
+    This typically takes 10-30 seconds depending on folder size and AI provider.
+    
+    <Note>
+      If you enabled "Include Reasoning" in Settings, you'll see detailed explanations for why files are grouped together.
+    </Note>
+  </Step>
+  
+  <Step title="Review and customize the preview">
+    The AI will present a hierarchical folder structure. For each suggested folder:
+    
+    - **Expand** folders to see which files will be moved
+    - **Edit** folder names by clicking on them
+    - **Remove** files from suggestions if you disagree
+    - **Read reasoning** to understand the AI's decision-making
+    
+    You can also provide **additional instructions** at this stage:
+    - "Keep all 2024 files together"
+    - "Create a separate folder for invoices"
+    - "Use lowercase folder names"
+    
+    <Warning>
+      Files protected by exclusion rules won't appear in the preview. Check Settings → Exclusion Rules to see what's protected.
+    </Warning>
+  </Step>
+  
+  <Step title="Apply changes">
+    When you're satisfied with the preview, click **"Apply Changes"** (or press **⌘⏎**).
+    
+    Sorty will:
+    - Create the new folder structure
+    - Move files into their designated folders
+    - Apply Finder tags (if enabled)
+    - Record the operation in History
+    
+    **Don't worry—you can always undo!** Press **⌘Z** immediately after applying, or go to **History** (⇧⌘H) and click "Revert" on any past session.
+  </Step>
+</Steps>
+
+---
+
+## Understanding the Preview
+
+The preview shows you exactly what will happen before any files are moved.
+
+### Folder Structure
+
+The AI organizes files into a **hierarchical structure**:
+
+```
+Documents/
+├── Work/
+│   ├── Q1_2024_Reports/
+│   └── Client_Presentations/
+├── Personal/
+│   ├── Receipts/
+│   └── Tax_Documents/
+└── Projects/
+    ├── Website_Redesign/
+    └── Mobile_App/
+```
+
+Each folder includes:
+- **File count**: Number of files that will be moved
+- **Reasoning** (if enabled): Why the AI grouped these files
+- **Tags**: Finder tags that will be applied
+
+### Customizing the Organization
+
+You have several options to tweak the AI's suggestions:
+
+| Action | How to Do It |
+|--------|-------------|
+| **Rename a folder** | Click the folder name and edit inline |
+| **Remove a file** | Click the X next to the file name |
+| **Provide additional instructions** | Type in the "Custom Instructions" field and click "Regenerate" |
+| **Change temperature** | Adjust in Settings to make the AI more predictable (low) or creative (high) |
+| **Re-run analysis** | Press **⇧⌘R** to regenerate with current settings |
+
+---
+
+## Advanced Features
+
+Once you're comfortable with the basics, explore these powerful features.
+
+### Custom Instructions
+
+Before organizing, you can provide specific guidance:
+
+- "Group all 2024 files together"
+- "Organize by client name"
+- "Keep design files separate from code"
+- "Create a folder for each project"
+
+Enter instructions in the text field before clicking "Organize".
+
+### Deep Scan
+
+Enable **Deep Scan** in Settings for content-aware organization:
+
+- **PDF text extraction**: Reads document content
+- **Image EXIF metadata**: Analyzes camera, date, location
+- **Document titles and keywords**: Extracts semantic information
+- **Audio/video metadata**: Reads artist, album, duration
+
+<Warning>
+  Deep Scan is more accurate but slower and may use more API credits. File contents are analyzed **locally**—only metadata summaries are sent to the AI.
+</Warning>
+
+### File Tagging
+
+Enable **File Tagging** in Settings to apply Finder-compatible tags:
+
+- Tags like "Invoice", "Personal", "Important", "Archive"
+- Searchable in Spotlight and Finder
+- Color-coded for visual organization
+
+### Temperature Control
+
+Adjust the AI's creativity in Settings:
+
+- **Low (0.0-0.3)**: Predictable, strict categorization
+- **Medium (0.4-0.6)**: Balanced approach (recommended)
+- **High (0.7-1.0)**: Creative groupings, may find novel patterns
+
+---
+
+## Using The Learnings
+
+The Learnings is a **passive learning system** that builds a personalized understanding of your organization preferences.
+
+<Steps>
+  <Step title="Enable Learning">
+    Navigate to **The Learnings** (⇧⌘L) and grant consent.
+  </Step>
+  
+  <Step title="Authenticate">
+    Set up Touch ID / Face ID / Passcode protection for your data. This is required for security—your learning data is encrypted with AES-256.
+  </Step>
+  
+  <Step title="Use the app normally">
+    Organize files, provide feedback, and make corrections. The system observes:
+    
+    - **Steering prompts**: Post-organization feedback
+    - **Honing answers**: Explicit preferences from Q&A sessions
+    - **Guiding instructions**: Instructions you provide before organizing
+    - **Manual corrections**: Files you move after AI organization
+    - **Reverts**: Organization sessions you undo
+  </Step>
+  
+  <Step title="Refine preferences">
+    After completing an organization, click **"Refine Preferences"** to answer 3-5 AI-generated questions about your organization philosophy.
+    
+    Example questions:
+    - "When you finish a project, what is your preferred archival strategy?"
+    - "How do you prefer to organize documents by date?"
+    
+    Your answers become high-priority preferences for future organizations.
+  </Step>
+</Steps>
+
+<Note>
+  The Learnings uses **temporal weighting**—recent behavior is weighted more heavily than older patterns. This means the AI adapts as your preferences evolve.
+</Note>
+
+---
+
+## Setting Up Watched Folders
+
+Watched folders enable **automatic background monitoring** for folders like Downloads.
+
+<Steps>
+  <Step title="Add a watched folder">
+    1. Navigate to **Watched Folders** (⌘5)
+    2. Click **Add Folder**
+    3. Select a directory to monitor (e.g., `/Users/you/Downloads`)
+  </Step>
+  
+  <Step title="Configure per-folder settings">
+    Each watched folder can have:
+    - **Its own persona** (e.g., Developer for your code folder)
+    - **Smart Drop mode**: Only organize new files dropped into the folder root
+    - **Custom enable/disable state**
+  </Step>
+  
+  <Step title="Calibrate (optional)">
+    Run **"Calibrate"** to perform a one-time full organization. This establishes the baseline folder structure that Smart Drop will use going forward.
+  </Step>
+</Steps>
+
+<Warning>
+  Auto-Organize requires a valid AI provider configuration in Settings. The feature will remain grayed out until you configure OpenAI, Anthropic, Ollama, or Apple Intelligence.
+</Warning>
+
+---
+
+## Keyboard Shortcuts
+
+Master these shortcuts to work faster:
+
+| Shortcut | Action |
+|----------|--------|
+| **⌘O** | Open Directory |
+| **⌘R** | Start Organization |
+| **⇧⌘R** | Regenerate Organization |
+| **⌘⏎** | Apply Changes |
+| **⌘Z** | Undo (revert organization) |
+| **⌘,** | Open Settings |
+| **⇧⌘L** | Open The Learnings |
+| **⇧⌘H** | Open History |
+| **⌘1-5** | Navigate tabs (Organize, Health, Duplicates, Exclusions, Watched) |
+
+---
+
+## Troubleshooting
+
+### AI Not Responding
+
+- ✓ Check your internet connection
+- ✓ Verify your API Key is correct in Settings
+- ✓ Ensure the API URL is correct for your provider
+- ✓ For Ollama: ensure the server is running (`ollama serve`)
+
+### Files Not Moving
+
+- ✓ Check Exclusion Rules to ensure files aren't protected
+- ✓ Verify you have write permissions for the directory
+- ✓ Ensure the source files still exist
+
+### Slow Organization
+
+- ✓ Disable Deep Scan for faster processing
+- ✓ Reduce the number of files by using exclusions
+- ✓ Enable Streaming for responsive feedback
+- ✓ Consider using a faster AI model
+
+---
+
+## Next Steps
+
+Now that you've organized your first folder, explore more features:
+
+<CardGroup cols={2}>
+  <Card title="Custom Personas" icon="user-gear" href="/features/personas">
+    Create specialized AI profiles for different workflows
+  </Card>
+  <Card title="Duplicate Detection" icon="copy" href="/features/duplicates">
+    Find and safely remove duplicate files
+  </Card>
+  <Card title="Workspace Health" icon="heart-pulse" href="/features/workspace-health">
+    Monitor directory health with actionable insights
+  </Card>
+  <Card title="CLI Tools" icon="terminal" href="/cli/overview">
+    Control Sorty from the command line
+  </Card>
+</CardGroup>

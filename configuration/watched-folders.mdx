@@ -1,0 +1,471 @@
+---
+title: Watched Folders
+description: Set up automatic folder monitoring and background organization
+---
+
+Watched Folders enable automatic organization of directories like Downloads or Desktop. New files are detected and organized in the background without manual intervention.
+
+## Overview
+
+Watched Folders continuously monitor specified directories for changes:
+
+- **Real-time detection**: New files trigger organization within seconds
+- **Smart debouncing**: Waits for file operations to complete before organizing
+- **Per-folder configuration**: Each folder can use different personas and settings
+- **Background operation**: Works even when the app is hidden or in the Dock
+
+---
+
+## Setting Up Watched Folders
+
+<Steps>
+  <Step title="Navigate to Watched Folders">
+    Open Sorty and select **Watched Folders** from the sidebar (or press `⌘5`).
+  </Step>
+  <Step title="Add a Folder">
+    Click **Add Folder** and select a directory to monitor (e.g., `~/Downloads`).
+  </Step>
+  <Step title="Configure Settings">
+    Adjust per-folder options like auto-organize, persona, and trigger delay.
+  </Step>
+  <Step title="Enable Background Behavior">
+    Go to **Settings → Automation** and enable:
+    - **Launch at Login**: Start Sorty automatically
+    - **Keep in Background**: Continue monitoring when windows are closed
+    - **Hide Dock Icon** (optional): Run as a menu bar app
+  </Step>
+</Steps>
+
+<Note>
+  **Permission Required**: Sorty needs Full Disk Access or specific folder permissions to monitor watched folders. Grant access in **System Settings → Privacy & Security**.
+</Note>
+
+---
+
+## Folder Configuration
+
+Each watched folder has independent settings:
+
+### Basic Settings
+
+| Setting | Description | Default |
+|---------|-------------|----------|
+| **Enabled** | Toggle monitoring on/off | ON |
+| **Auto-Organize** | Automatically organize new files | ON |
+| **Trigger Delay** | Seconds to wait after changes before organizing | 5s |
+| **Persona** | Organization style for this folder | Global default |
+
+### Advanced Settings
+
+#### Custom Prompts
+
+Provide folder-specific instructions to the AI:
+
+```markdown Example Custom Prompts
+For ~/Downloads:
+"Group browser downloads by file type. Keep installers separate."
+
+For ~/Desktop:
+"Organize screenshots by date. Move everything else to appropriate folders."
+
+For ~/Documents/Work:
+"Sort by client name, then project. Use YYYY-MM format for dates."
+```
+
+#### Temperature Override
+
+Adjust AI creativity per-folder:
+
+- **Lower (0.2-0.3)**: Predictable organization for routine downloads
+- **Higher (0.7-0.8)**: Creative groupings for mixed content
+
+#### Model Override
+
+Use a different AI model for specific folders:
+
+<CodeGroup>
+```yaml Example Configuration
+Downloads:
+  Model: gpt-3.5-turbo (fast, cheap)
+  
+Photos:
+  Model: gpt-4o (vision-enabled)
+  
+Code Projects:
+  Model: claude-3-5-sonnet (best code understanding)
+```
+</CodeGroup>
+
+<Tip>
+  Use **Settings → Automation → Global Automation Model** to set a default model for all watched folders, then override specific folders as needed.
+</Tip>
+
+---
+
+## Security-Scoped Bookmarks
+
+Sorty uses security-scoped bookmarks to maintain persistent access to watched folders across app restarts.
+
+### How Bookmarks Work
+
+1. When you add a folder, Sorty creates a security-scoped bookmark
+2. The bookmark is stored encrypted in UserDefaults
+3. On app launch, bookmarks are restored and validated
+4. If a bookmark becomes stale, Sorty attempts to recreate it
+
+### Access Status Indicators
+
+| Status | Meaning | Action |
+|--------|---------|--------|
+| **Valid** ✓ | Full access granted | None needed |
+| **Stale** ⚠️ | Bookmark needs refresh | Sorty auto-refreshes |
+| **Lost** ✗ | Access denied or folder moved | Reauthorize folder |
+| **Unknown** ？ | Not yet validated | Wait for next validation |
+
+### Troubleshooting Access Issues
+
+If a watched folder shows "Lost" access:
+
+<Steps>
+  <Step title="Check Folder Exists">
+    Verify the folder hasn't been moved, renamed, or deleted.
+  </Step>
+  <Step title="Reauthorize Folder">
+    Click the **⚠️ Reauthorize** button on the folder card and select the folder again.
+  </Step>
+  <Step title="Grant System Permissions">
+    Open **System Settings → Privacy & Security → Files and Folders** and ensure Sorty has access.
+  </Step>
+  <Step title="Move App to /Applications">
+    Bookmarks work most reliably when Sorty is installed in `/Applications`.
+  </Step>
+</Steps>
+
+<Warning>
+  **Do not move Sorty.app after adding watched folders.** This can invalidate security bookmarks. If you must move the app, reauthorize all folders afterward.
+</Warning>
+
+---
+
+## Smart Drop Mode
+
+Smart Drop prevents infinite reorganization loops by only organizing **new** files dropped into a folder.
+
+### How Smart Drop Works
+
+1. **Calibration**: Run a one-time full organization to establish baseline structure
+2. **Monitoring**: Only files added to the folder root after calibration are organized
+3. **Preservation**: Existing files and nested subfolders remain untouched
+
+<CodeGroup>
+```yaml Before Smart Drop (Problematic)
+Downloads/
+  file1.pdf  → Organized
+  Projects/
+    file2.pdf → Organized
+    Projects/
+      Documents/ → AI re-organizes existing structure
+        file2.pdf
+
+After Smart Drop (Correct)
+Downloads/
+  [new_file.pdf] → Organized into existing structure
+  Projects/
+    file2.pdf → Left untouched
+    Documents/
+      file2.pdf → Left untouched
+```
+</CodeGroup>
+
+### Calibrating a Watched Folder
+
+<Steps>
+  <Step title="Enable Smart Drop">
+    Toggle **Smart Drop Mode** on the folder card.
+  </Step>
+  <Step title="Run Calibration">
+    Click **Calibrate** to perform a one-time full organization.
+  </Step>
+  <Step title="Review Structure">
+    The AI creates an organized folder structure based on current contents.
+  </Step>
+  <Step title="Start Monitoring">
+    From now on, only new files in the root are organized into this structure.
+  </Step>
+</Steps>
+
+<Tip>
+  Smart Drop is ideal for Downloads folders where you want new files organized automatically but don't want to disturb existing folder hierarchies.
+</Tip>
+
+---
+
+## Automation Settings
+
+Control global behavior for watched folders in **Settings → Automation**.
+
+### Global Automation Model
+
+Use a separate AI model for background tasks:
+
+```yaml Recommended Models
+Foreground (manual organization):
+  - gpt-4o
+  - claude-3-5-sonnet
+  
+Background (watched folders):
+  - gpt-3.5-turbo (50x cheaper)
+  - claude-3-haiku (fast)
+  - ollama/llama3.1 (free, local)
+```
+
+<Accordion title="Why Use a Different Model?">
+  - **Cost savings**: Background tasks don't need the most expensive models
+  - **Speed**: Faster models reduce latency for file monitoring
+  - **Rate limits**: Separate models prevent background tasks from consuming your primary quota
+</Accordion>
+
+### Background Behavior Options
+
+#### Launch at Login
+
+Automatically start Sorty when you log in to macOS:
+
+- Registered as a background item in System Settings
+- Visible in **System Settings → General → Login Items**
+- Can be disabled system-wide or in Sorty settings
+
+#### Keep in Background
+
+Continue monitoring folders even when all windows are closed:
+
+- App remains in Dock (or menu bar if hidden)
+- File System Events API continues monitoring
+- Organization happens silently with optional notifications
+
+#### Hide Dock Icon
+
+Run Sorty as a menu bar-only app:
+
+<CodeGroup>
+```bash Enable Menu Bar Mode
+defaults write com.sorty.app hideDockIcon -bool true
+# Restart Sorty for changes to take effect
+```
+</CodeGroup>
+
+<Note>
+  Menu bar mode requires **Keep in Background** to be enabled. Access the app by clicking the Sorty icon in the menu bar.
+</Note>
+
+### Automation Notifications
+
+Control when background organization triggers notifications:
+
+- **On Auto-Organize**: Show notification when files are organized
+- **Completion Summary**: Display count of organized files
+- **Foreground Preview**: Show preview-ready alerts even when app is active
+
+---
+
+## Watched Folders Summary
+
+View statistics for all monitored folders in **Settings → Automation → Watched Folders Summary**:
+
+| Metric | Description |
+|--------|-------------|
+| **Total Folders** | Number of folders in the watched list |
+| **Active** | Folders with monitoring enabled |
+| **Auto-Organizing** | Folders with auto-organize enabled |
+| **Last Triggered** | Most recent organization timestamp |
+
+---
+
+## Common Use Cases
+
+### Downloads Folder
+
+```yaml Configuration
+Folder: ~/Downloads
+Persona: General
+Auto-Organize: ON
+Trigger Delay: 10s
+Custom Prompt: "Group downloads by type. Keep installers in one place."
+```
+
+**Behavior**: Browser downloads are automatically sorted by type (images, documents, archives, etc.) shortly after download completes.
+
+### Desktop Cleanup
+
+```yaml Configuration
+Folder: ~/Desktop
+Persona: General
+Auto-Organize: OFF (manual trigger)
+Custom Prompt: "Organize screenshots by date. Move everything else to Documents."
+```
+
+**Behavior**: Desktop remains untouched until you manually trigger organization (useful for weekly cleanup).
+
+### Project Workspace
+
+```yaml Configuration
+Folder: ~/Work/Projects
+Persona: Developer
+Auto-Organize: ON
+Model Override: claude-3-5-sonnet
+Custom Prompt: "Group by project name. Separate source code, docs, and assets."
+```
+
+**Behavior**: New files dropped into the workspace are automatically sorted into existing project folders.
+
+### Photography Imports
+
+```yaml Configuration
+Folder: ~/Pictures/Import
+Persona: Photographer
+Auto-Organize: ON
+Model Override: gpt-4o (vision)
+Vision Enabled: YES
+Custom Prompt: "Organize by shoot date and camera. Use EXIF data."
+```
+
+**Behavior**: Photos are analyzed with AI vision and organized by date, camera model, and subject matter.
+
+---
+
+## Performance Considerations
+
+### File System Events Throttling
+
+Sorty uses `FSEventStream` to monitor folders efficiently:
+
+- **Latency**: 0.5s (detects changes within 500ms)
+- **Coalescing**: Multiple rapid changes are batched together
+- **Debouncing**: Waits for file operations to complete before organizing
+
+### Trigger Delay Recommendations
+
+| Scenario | Recommended Delay |
+|----------|------------------|
+| **Small files** (documents, images) | 5s |
+| **Large files** (videos, downloads) | 10-15s |
+| **Network drives** | 20-30s |
+| **Frequent changes** | 30-60s (reduce API calls) |
+
+<Tip>
+  If files are being organized before they finish downloading, increase the **Trigger Delay**.
+</Tip>
+
+### API Rate Limiting
+
+Avoid hitting provider rate limits:
+
+- Use a cheaper model for watched folders (e.g., gpt-3.5-turbo)
+- Increase trigger delay to batch multiple files
+- Consider local models (Ollama) for unlimited requests
+
+---
+
+## Deeplink Automation
+
+Control watched folders via URL schemes (for Shortcuts, Alfred, etc.):
+
+```bash Deeplink Examples
+# Open watched folders view
+open "sorty://watched"
+
+# Add a folder
+open "sorty://watched?action=add&path=/Users/me/Downloads"
+
+# Navigate to specific folder
+open "sorty://watched?id=<folder-uuid>"
+```
+
+### CLI Integration
+
+```bash CLI Commands
+# Add folder via CLI
+sorty watched add ~/Downloads
+
+# List watched folders
+sorty watched list
+
+# Remove folder
+sorty watched remove ~/Downloads
+```
+
+---
+
+## Troubleshooting
+
+### Folder Not Being Monitored
+
+**Symptoms**: New files appear but aren't organized.
+
+<Accordion title="Solutions">
+  1. Check **Enabled** toggle is ON
+  2. Verify **Auto-Organize** is enabled
+  3. Ensure AI provider is configured in Settings
+  4. Check folder access status (should be "Valid")
+  5. Review trigger delay (may be too short for large files)
+</Accordion>
+
+### High CPU Usage
+
+**Symptoms**: Sorty consuming significant CPU resources.
+
+<Accordion title="Solutions">
+  1. Reduce number of watched folders
+  2. Increase trigger delay to batch operations
+  3. Use a faster AI model (gpt-3.5-turbo, claude-haiku)
+  4. Disable Deep Scan for watched folders
+  5. Exclude large folders with many files
+</Accordion>
+
+### Permission Errors
+
+**Symptoms**: "Lost" access status or permission denied errors.
+
+<Accordion title="Solutions">
+  1. Grant Full Disk Access: **System Settings → Privacy & Security → Full Disk Access**
+  2. Reauthorize the folder by clicking the warning icon
+  3. Move Sorty.app to `/Applications` folder
+  4. Check folder still exists and hasn't been renamed
+  5. Restart Sorty to refresh bookmarks
+</Accordion>
+
+### Auto-Organize Disabled Globally
+
+**Symptoms**: All folders show auto-organize as disabled.
+
+**Cause**: AI provider configuration is invalid or missing.
+
+<Accordion title="Solutions">
+  1. Go to **Settings → AI Provider**
+  2. Verify API key is valid
+  3. Test connection to provider
+  4. Re-enable auto-organize for each folder after fixing provider
+</Accordion>
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Start Small" icon="seedling">
+    Begin with one folder (Downloads) before adding multiple watched folders.
+  </Card>
+  <Card title="Use Personas" icon="user-gear">
+    Assign appropriate personas to each folder for better organization.
+  </Card>
+  <Card title="Test First" icon="flask">
+    Manually organize a folder before enabling auto-organize to verify behavior.
+  </Card>
+  <Card title="Monitor Costs" icon="dollar-sign">
+    Watch API usage if using cloud providers for watched folders.
+  </Card>
+</CardGroup>
+
+<Warning>
+  **Do not watch system folders** like `/Applications`, `/System`, or `/Library`. This can cause permission issues and unexpected behavior.
+</Warning>

@@ -1,0 +1,383 @@
+---
+title: 'Organization & Duplicate Deeplinks'
+description: 'Deeplinks for file organization, duplicate scanning, and workspace management'
+---
+
+# Organization & Duplicate Deeplinks
+
+Control Sorty's core functionality—file organization and duplicate detection—via the `sorty://` URL scheme.
+
+## File Organization
+
+### sorty://organize
+
+Start organizing a directory with AI-powered categorization.
+
+#### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `path` | String | No | Absolute path to the directory to organize |
+| `persona` | String | No | Persona ID (e.g., `developer`, `photographer`, `sorty_general`) |
+| `autostart` | Boolean | No | Automatically begin organization without preview (default: `false`) |
+
+#### Examples
+
+**Basic - Open organization view:**
+```
+sorty://organize
+```
+
+**Organize specific folder:**
+```
+sorty://organize?path=/Users/me/Downloads
+```
+
+**Organize with specific persona:**
+```
+sorty://organize?path=/Users/me/Projects&persona=developer
+```
+
+**Auto-start organization (no preview):**
+```
+sorty://organize?path=/Users/me/Downloads&autostart=true
+```
+
+**Full example with all parameters:**
+```
+sorty://organize?path=/Users/me/Downloads&persona=developer&autostart=true
+```
+
+#### Using the CLI
+
+The `sorty organize` command provides a friendlier interface:
+
+```bash
+# Organize current directory
+sorty organize .
+
+# Organize with specific persona
+sorty organize /Users/me/Downloads --persona developer
+
+# Auto-start organization
+sorty organize ~/Downloads --auto
+
+# Combine options
+sorty organize ~/Projects --persona developer --auto
+```
+
+#### Available Personas
+
+| Persona ID | Best For | Key Features |
+|------------|----------|-------------|
+| `sorty_general` | Most users | Standard categories (Documents, Media, Archives) |
+| `developer` | Programmers | Groups by project, language, tech stack |
+| `photographer` | Photo professionals | Organizes by shoots, dates, camera metadata |
+| `music_producer` | Audio creators | Groups projects, samples, stems, sessions |
+| `student` | Academic work | Organizes by subject, course, semester |
+| `business` | Professional work | Groups by client, project, fiscal period |
+
+**Note:** You can also use custom persona IDs that you've created in the app.
+
+#### Behavior
+
+1. **Without `autostart`**: Opens the organization view with the selected folder loaded. User must click "Organize" to begin.
+2. **With `autostart=true`**: Immediately begins AI analysis and shows the organization plan.
+3. **Without `path`**: Opens the organization view; user must select a folder.
+4. **Without `persona`**: Uses the currently selected persona in Settings.
+
+#### Path Validation
+
+- Path must be an absolute path (e.g., `/Users/me/Downloads`, not `~/Downloads`)
+- Path must exist on the file system
+- Path must be a directory (not a file)
+- User must have read/write permissions
+
+#### Error Handling
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| "Path not found" | Directory doesn't exist | Verify the path is correct |
+| "Not a directory" | Path points to a file | Provide a directory path |
+| "Permission denied" | No read/write access | Check file system permissions |
+| "AI not configured" | No AI provider set up | Configure provider in Settings |
+| "Invalid persona" | Persona ID doesn't exist | Use a valid persona ID or omit parameter |
+
+---
+
+## Duplicate Detection
+
+### sorty://duplicates
+
+Scan a directory for duplicate files using SHA-256 content hashing.
+
+#### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `path` | String | No | Absolute path to the directory to scan |
+| `autostart` | Boolean | No | Automatically begin scanning (default: `false`) |
+
+#### Examples
+
+**Basic - Open duplicates view:**
+```
+sorty://duplicates
+```
+
+**Scan specific folder:**
+```
+sorty://duplicates?path=/Users/me/Photos
+```
+
+**Auto-start scan:**
+```
+sorty://duplicates?path=/Users/me/Downloads&autostart=true
+```
+
+#### Using the CLI
+
+```bash
+# Open duplicates view
+sorty duplicates .
+
+# Scan specific folder
+sorty duplicates /Users/me/Photos
+
+# Auto-start scan
+sorty duplicates ~/Downloads --auto
+```
+
+#### How Duplicate Detection Works
+
+1. **Content Hashing**: Sorty computes a SHA-256 hash of each file's content
+2. **Grouping**: Files with identical hashes are grouped together
+3. **Metadata**: Each duplicate shows filename, size, modification date, and path
+4. **Selection**: You choose which copy to keep (oldest, newest, or manual selection)
+
+#### Behavior
+
+- **Without `autostart`**: Opens the duplicates view with scan settings
+- **With `autostart=true`**: Immediately begins scanning the specified path
+- **Without `path`**: Opens the duplicates view; user must select a folder
+
+#### Safe Deletion
+
+When you delete duplicates, Sorty can use "Safe Deletion" mode:
+
+- **Enabled (default)**: Files are tracked and can be restored from History
+- **Disabled**: Files are immediately deleted from disk
+
+Configure this in Settings → Duplicates → Safe Deletion.
+
+#### Bulk Operations
+
+After scanning, you can use bulk operations:
+
+- **Delete All (Keep Newest)**: Removes all duplicates, keeping the most recently modified
+- **Delete All (Keep Oldest)**: Removes all duplicates, keeping the original
+
+These operations require explicit confirmation and cannot be triggered via deeplinks.
+
+---
+
+## Workspace Health
+
+### sorty://health
+
+Open the Workspace Health monitoring dashboard.
+
+#### Parameters
+
+None.
+
+#### Examples
+
+**Open Workspace Health:**
+```
+sorty://health
+```
+
+#### Using the CLI
+
+```bash
+# Open Workspace Health
+sorty health
+
+# Alternative commands
+sorty status
+```
+
+#### What is Workspace Health?
+
+Workspace Health monitors your directories for:
+
+- **Space Distribution**: How disk space is used across file types
+- **Clutter Growth**: Rate of new unorganized files
+- **Empty Folders**: Directories with no contents
+- **Very Old Files**: Files not accessed in 1+ year
+- **Broken Symlinks**: Symbolic links pointing to missing targets
+- **Duplicate Candidates**: Potential duplicate files
+
+#### Cleanup Opportunities
+
+Sorty identifies actionable insights:
+
+- **Screenshot Clutter**: Many screenshots that could be organized
+- **Download Clutter**: Old files in Downloads folder
+- **Large Files**: Files > 100MB that may need attention
+- **Temporary Files**: Cache and temp files safe to delete
+- **Unorganized Files**: Files in folder root needing organization
+
+#### Growth Tracking
+
+Weekly insights show:
+
+- How much your folders grew
+- Which file types are accumulating
+- Recommendations for keeping things tidy
+
+---
+
+## History
+
+### sorty://history
+
+Open the organization history view with rollback support.
+
+#### Parameters
+
+None.
+
+#### Examples
+
+**Open history:**
+```
+sorty://history
+```
+
+#### Using the CLI
+
+```bash
+sorty history
+```
+
+#### What's in History?
+
+Each organization session records:
+
+- **Timestamp**: When the organization occurred
+- **Path**: Directory that was organized
+- **Persona**: AI persona used
+- **File Count**: Number of files moved
+- **Reasoning**: AI's explanation for the organization structure
+- **Rollback Status**: Whether the session can be reverted
+
+#### Rollback Support
+
+- Click "Revert" to undo an organization
+- Files are moved back to their original locations
+- Only available if files haven't been manually moved since
+- Alternative: Use ⌘Z immediately after organization
+
+---
+
+## Integration Examples
+
+### Alfred Workflow: Organize Downloads
+
+Create a keyword trigger that organizes your Downloads folder:
+
+```bash
+#!/bin/bash
+sorty organize ~/Downloads --persona developer --auto
+```
+
+### Keyboard Maestro: Weekly Duplicate Scan
+
+Schedule a duplicate scan every Sunday:
+
+```bash
+#!/bin/bash
+sorty duplicates ~/Pictures --auto
+```
+
+### Hazel: Auto-Organize New Files
+
+When files are added to a folder, trigger organization:
+
+```bash
+#!/bin/bash
+sorty organize "$1" --auto
+```
+
+### Shortcuts: Quick Organize
+
+Create a macOS Shortcut with "Open URLs":
+
+```
+sorty://organize?path=/Users/me/Downloads&autostart=true
+```
+
+Add it to your menu bar for one-click access.
+
+### AppleScript: Context-Aware Organization
+
+```applescript
+set selectedFolder to POSIX path of (choose folder with prompt "Select folder to organize:")
+tell application "System Events"
+    set encodedPath to do shell script "python3 -c \"import urllib.parse; print(urllib.parse.quote('" & selectedFolder & "'))\""
+    open location "sorty://organize?path=" & encodedPath & "&autostart=true"
+end tell
+```
+
+---
+
+## Advanced Usage
+
+### Chaining Operations
+
+You can chain multiple operations using shell scripts:
+
+```bash
+#!/bin/bash
+# Organize, then scan for duplicates, then check health
+sorty organize ~/Downloads --auto
+sleep 5
+sorty duplicates ~/Downloads --auto
+sleep 5
+sorty health
+```
+
+### Conditional Organization
+
+Organize only if directory has more than 50 files:
+
+```bash
+#!/bin/bash
+DIR=~/Downloads
+COUNT=$(find "$DIR" -maxdepth 1 -type f | wc -l)
+
+if [ $COUNT -gt 50 ]; then
+    sorty organize "$DIR" --auto
+fi
+```
+
+### Logging Organization History
+
+Keep a log of all organization sessions:
+
+```bash
+#!/bin/bash
+DIR=~/Downloads
+echo "$(date): Organizing $DIR" >> ~/sorty-log.txt
+sorty organize "$DIR" --auto
+```
+
+---
+
+## Next Steps
+
+- [Management Deeplinks](/deeplinks/management) - Settings, personas, and utilities
+- [Deeplinks Overview](/deeplinks/overview) - URL scheme basics and integration guides
+- [sorty CLI Reference](/cli/sorty) - Command-line interface documentation

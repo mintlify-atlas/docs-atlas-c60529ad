@@ -1,0 +1,261 @@
+---
+title: "Installation"
+description: "Download pre-built releases or build Sorty from source with Xcode or Swift Package Manager"
+---
+
+# Installation
+
+Sorty offers two installation methods: download a pre-built release for immediate use, or build from source for complete control and the latest development features.
+
+## Prerequisites
+
+Before installing Sorty, ensure your system meets these requirements:
+
+- **macOS 15.1 or later** (required for SwiftUI features and Apple Intelligence support)
+- **Xcode 16.0 or later** (only if building from source)
+- **(Optional)** API key for OpenAI, Anthropic, or compatible provider
+- **(Optional)** Apple Intelligence enabled for on-device AI (requires Apple Silicon)
+
+---
+
+## Option 1: Download Pre-Built Release
+
+The fastest way to get started with Sorty.
+
+<Steps>
+  <Step title="Download the latest release">
+    Visit the [Releases page](https://github.com/shirishpothi/Sorty/releases) and download the latest `.zip` file.
+  </Step>
+  
+  <Step title="Extract and move to Applications">
+    Unzip the downloaded file and drag `Sorty.app` to your `/Applications` folder.
+    
+    <Note>
+      Moving the app to `/Applications` is **highly recommended**. It ensures that security bookmarks for "Watched Folders" persist reliably across app restarts. Running from other locations (like Downloads) may cause permission issues.
+    </Note>
+  </Step>
+  
+  <Step title="Remove quarantine attribute">
+    Since the app is not notarized (no Apple Developer certificate), you need to remove the macOS quarantine flag:
+    
+    ```bash
+    xattr -cr /Applications/Sorty.app
+    ```
+    
+    <Warning>
+      The `xattr -cr` command removes macOS's quarantine flag that blocks unsigned apps. This is safe for apps you trust and have downloaded from a known source like GitHub. Only run this on software you trust.
+    </Warning>
+  </Step>
+  
+  <Step title="Launch Sorty">
+    Double-click `Sorty.app` in your Applications folder to launch. You may see a security prompt on first launch—click "Open" to proceed.
+  </Step>
+</Steps>
+
+### Why isn't the app code-signed?
+
+Pre-built releases are not code-signed because the developer does not have an Apple Developer certificate. Code signing requires a $99/year membership. Building from source gives you complete control over compilation and signing.
+
+<Note>
+  If you prefer code-signed applications, consider building from source with your own Apple Developer account, or wait for future signed releases.
+</Note>
+
+---
+
+## Option 2: Build from Source
+
+Building from source gives you the latest features and complete control over the build process.
+
+### Using Make (Recommended)
+
+The fastest method using the included Makefile:
+
+<Steps>
+  <Step title="Clone the repository">
+    ```bash
+    git clone https://github.com/shirishpothi/Sorty.git
+    cd Sorty
+    ```
+  </Step>
+  
+  <Step title="Build and run">
+    ```bash
+    make run
+    ```
+    
+    This compiles Sorty and launches it immediately.
+  </Step>
+</Steps>
+
+### Using Xcode
+
+For developers who prefer the full Xcode experience:
+
+<Steps>
+  <Step title="Clone the repository">
+    ```bash
+    git clone https://github.com/shirishpothi/Sorty.git
+    cd Sorty
+    ```
+  </Step>
+  
+  <Step title="Open in Xcode">
+    Open `Sorty.xcodeproj` in Xcode 16.0 or later.
+  </Step>
+  
+  <Step title="Select scheme and destination">
+    - Select the **Sorty** scheme from the scheme picker
+    - Choose your Mac as the destination device
+  </Step>
+  
+  <Step title="Build and run">
+    Press **⌘R** to build and run the app.
+  </Step>
+</Steps>
+
+### Using Swift Package Manager
+
+For command-line enthusiasts:
+
+```bash
+git clone https://github.com/shirishpothi/Sorty.git
+cd Sorty
+swift build -c release
+swift run SortyApp
+```
+
+<Note>
+  The project uses Swift Package Manager for dependency management. The only external dependency is [Sparkle](https://sparkle-project.org/) for automatic update checking.
+</Note>
+
+---
+
+## Post-Installation Setup
+
+After installing Sorty, you'll want to configure it for your workflow.
+
+### 1. Configure AI Provider
+
+Navigate to **Settings** (⌘,) and configure your preferred AI provider:
+
+**For OpenAI-Compatible APIs:**
+- Enter the **API URL** (e.g., `https://api.openai.com/v1`)
+- Enter your **API Key**
+- Select your preferred **model** (e.g., `gpt-4o`, `claude-3-5-sonnet`)
+
+**For Apple Intelligence:**
+- Requires macOS 15.1+ with Apple Intelligence enabled
+- No API key needed—processing happens on-device
+- Select "Apple Foundation Models" as your provider
+
+**For Ollama (Local AI):**
+- Install [Ollama](https://ollama.ai/) and run `ollama serve`
+- Enter `http://localhost:11434` as the API URL
+- Select an available Ollama model (e.g., `llama3`, `mistral`)
+
+<Warning>
+  **Auto-Organize** and AI-powered features will remain disabled until a valid AI provider is configured in Settings.
+</Warning>
+
+### 2. Set Up Watched Folders (Optional)
+
+Add folders to the "Watched" list in the sidebar to enable automatic background monitoring:
+
+1. Navigate to **Watched Folders** (⌘5)
+2. Click **Add Folder**
+3. Select a directory to monitor (e.g., Downloads)
+4. Configure per-folder settings (persona, Smart Drop mode)
+
+<Note>
+  Watched folders use macOS security bookmarks to maintain persistent access. If you move the app after adding watched folders, you may need to re-add them.
+</Note>
+
+### 3. Enable Finder Extension (Optional)
+
+The Finder extension is disabled by default via a feature flag.
+
+<Steps>
+  <Step title="Build the extension">
+    In Xcode, select the **SortyExtension** scheme and build it.
+  </Step>
+  
+  <Step title="Enable in System Settings">
+    Go to **System Settings → Privacy & Security → Extensions → Finder Extensions** and enable **SortyExtension**.
+  </Step>
+  
+  <Step title="Restart Finder">
+    ```bash
+    killall Finder
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+  The Finder extension requires **App Groups** to be configured in both the main app and extension targets using the identifier `group.com.sorty.app`. This is pre-configured in the Xcode project.
+</Warning>
+
+### 4. Advanced Notification Controls (Optional)
+
+By default, Sorty uses simple notification settings. If you want technical controls (backend selection, NotifiCLI internals, advanced test actions), enable:
+
+```bash
+defaults write com.sorty.app advancedNotificationSettingsEnabled -bool true
+```
+
+Disable again with:
+
+```bash
+defaults write com.sorty.app advancedNotificationSettingsEnabled -bool false
+```
+
+---
+
+## Troubleshooting Installation
+
+### "Sorty.app is damaged and can't be opened"
+
+This error occurs when the quarantine attribute is still set. Run:
+
+```bash
+xattr -cr /Applications/Sorty.app
+```
+
+### "Permission Denied" when accessing Watched Folders
+
+This is often due to macOS App Sandbox restrictions:
+
+1. Ensure the app is running from `/Applications`
+2. Remove the folder from the Watched list
+3. Re-add the folder to refresh the security bookmark
+
+### Build Errors in Xcode
+
+If you encounter build errors:
+
+- Ensure you're using **Xcode 16.0 or later**
+- Clean the build folder: **Product → Clean Build Folder** (⇧⌘K)
+- Delete derived data: `rm -rf ~/Library/Developer/Xcode/DerivedData`
+- Close and reopen Xcode
+
+### Swift Package Manager Issues
+
+If SPM fails to resolve packages:
+
+```bash
+swift package clean
+swift package resolve
+swift package update
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quick Start Guide" icon="rocket" href="/quickstart">
+    Organize your first folder in under 5 minutes
+  </Card>
+  <Card title="Configure AI Provider" icon="gear" href="/configuration/ai-providers">
+    Set up OpenAI, Anthropic, or Apple Intelligence
+  </Card>
+</CardGroup>

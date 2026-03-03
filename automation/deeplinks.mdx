@@ -1,0 +1,559 @@
+---
+title: Deeplinks
+description: Control Sorty using the sorty:// URL scheme for automation and shortcuts
+icon: link
+---
+
+Sorty provides comprehensive URL scheme support via the `sorty://` protocol, enabling external automation, AppleScript integration, and custom workflow creation.
+
+## Overview
+
+Deeplinks allow you to:
+- Launch specific views and features directly
+- Trigger organization tasks from other apps
+- Create Shortcuts app workflows
+- Build custom automation scripts
+- Integrate with AppleScript and shell scripts
+
+## URL Scheme Format
+
+```
+sorty://<route>?<parameter1>=<value1>&<parameter2>=<value2>
+```
+
+All parameters are URL-encoded. Paths and prompts with spaces or special characters must be properly encoded.
+
+## Organization Routes
+
+### Organize Directory
+
+**Route:** `sorty://organize`
+
+Start organizing a directory with optional persona selection and auto-start.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `path` | string | No | Absolute path to directory to organize |
+| `persona` | string | No | Persona ID (e.g., `developer`, `photographer`) |
+| `autostart` | boolean | No | Auto-start organization (`true`/`false`) |
+
+**Examples:**
+
+```bash
+# Open organize view
+open "sorty://organize"
+
+# Organize specific directory
+open "sorty://organize?path=/Users/me/Downloads"
+
+# Use developer persona
+open "sorty://organize?path=/Users/me/Projects&persona=developer"
+
+# Auto-start organization
+open "sorty://organize?path=/Users/me/Downloads&autostart=true"
+
+# Combine all parameters
+open "sorty://organize?path=/Users/me/Downloads&persona=general&autostart=true"
+```
+
+**Valid Persona IDs:**
+- `general` or `sorty_general` - General purpose
+- `developer` - Software development
+- `photographer` - Photography workflow
+- `music_producer` - Audio production
+- `student` - Academic work
+- `business` - Business documents
+- Custom persona IDs you've created
+
+## Duplicate Scanning
+
+### Scan for Duplicates
+
+**Route:** `sorty://duplicates`
+
+Open the duplicate scanner for a specific directory.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `path` | string | No | Absolute path to directory to scan |
+| `autostart` | boolean | No | Auto-start scanning (`true`/`false`) |
+
+**Examples:**
+
+```bash
+# Open duplicates view
+open "sorty://duplicates"
+
+# Scan specific directory
+open "sorty://duplicates?path=/Users/me/Documents"
+
+# Auto-start duplicate scan
+open "sorty://duplicates?path=/Users/me/Downloads&autostart=true"
+```
+
+## Persona Management
+
+### Create or Generate Personas
+
+**Route:** `sorty://persona`
+
+Manage personas or generate new ones using AI.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `action` | string | No | Action to perform (`create` or `generate`) |
+| `prompt` | string | No* | Description for AI generation (*required if `generate=true`) |
+| `generate` | boolean | No | Trigger AI generation immediately |
+
+**Examples:**
+
+```bash
+# Open persona management
+open "sorty://persona"
+
+# Open persona creator
+open "sorty://persona?action=create"
+
+# Generate persona from description
+open "sorty://persona?action=generate&generate=true&prompt=sci-fi%20ebook%20collector"
+
+# Another generation example
+open "sorty://persona?action=generate&generate=true&prompt=organize%20client%20invoices%20by%20date"
+```
+
+## Configuration Routes
+
+### Watched Folders
+
+**Route:** `sorty://watched`
+
+Manage watched folders for automatic organization.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `action` | string | No | Action to perform (`add`) |
+| `path` | string | No* | Path to add as watched (*required if `action=add`) |
+
+**Examples:**
+
+```bash
+# View watched folders
+open "sorty://watched"
+
+# Add folder to watched list
+open "sorty://watched?action=add&path=/Users/me/Downloads"
+```
+
+### Exclusion Rules
+
+**Route:** `sorty://exclusions`
+
+Manage file exclusion rules.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `action` | string | No | Action to perform (`add`) |
+| `pattern` | string | No* | Glob pattern to exclude (*required if `action=add`) |
+
+**Examples:**
+
+```bash
+# View exclusion rules
+open "sorty://exclusions"
+
+# Add exclusion pattern
+open "sorty://exclusions?action=add&pattern=*.log"
+
+# Exclude node_modules
+open "sorty://exclusions?action=add&pattern=node_modules/*"
+```
+
+### Storage Locations
+
+**Route:** `sorty://storage`
+
+Manage custom storage destinations.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `action` | string | No | Action to perform (`add`) |
+| `path` | string | No* | Path to add as storage location (*required if `action=add`) |
+
+**Examples:**
+
+```bash
+# View storage locations
+open "sorty://storage"
+
+# Add storage location
+open "sorty://storage?action=add&path=/Volumes/External/Archive"
+```
+
+### Settings
+
+**Route:** `sorty://settings`
+
+Open app settings, optionally jumping to a specific section.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `section` | string | No | Settings section to open |
+
+**Valid Sections:**
+- `rules` - Exclusion rules
+- `provider` - AI provider configuration
+- `strategy` - Organization strategy
+- `tuning` - Temperature and model tuning
+- `automation` - Automation settings
+- `finder` - Finder extension
+- `notifications` - Notification preferences
+- `advanced` - Advanced settings
+- `troubleshooting` - Troubleshooting tools
+- `help` - Help documentation
+
+**Examples:**
+
+```bash
+# Open general settings
+open "sorty://settings"
+
+# Open AI provider settings
+open "sorty://settings?section=provider"
+
+# Open automation settings
+open "sorty://settings?section=automation"
+```
+
+## Navigation Routes
+
+### Workspace Health
+
+**Route:** `sorty://health`
+
+Open the Workspace Health monitoring view.
+
+**Example:**
+
+```bash
+open "sorty://health"
+```
+
+### The Learnings
+
+**Route:** `sorty://learnings`
+
+Open The Learnings dashboard with optional actions.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `action` | string | No | Action to perform (`honing`, `stats`) |
+
+**Examples:**
+
+```bash
+# Open Learnings dashboard
+open "sorty://learnings"
+
+# Start honing session
+open "sorty://learnings?action=honing"
+
+# View statistics
+open "sorty://learnings?action=stats"
+```
+
+### History
+
+**Route:** `sorty://history`
+
+Open the organization history view.
+
+**Example:**
+
+```bash
+open "sorty://history"
+```
+
+### Help
+
+**Route:** `sorty://help`
+
+Open the help documentation, optionally jumping to a specific section.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `section` | string | No | Help section (e.g., `updates`) |
+
+**Examples:**
+
+```bash
+# Open help
+open "sorty://help"
+
+# Jump to updates section
+open "sorty://help?section=updates"
+```
+
+## AppleScript Integration
+
+Use deeplinks in AppleScript for advanced automation:
+
+### Basic Organization
+
+```applescript
+tell application "Sorty"
+    activate
+end tell
+
+open location "sorty://organize?path=/Users/me/Downloads&autostart=true"
+```
+
+### Conditional Organization
+
+```applescript
+tell application "Finder"
+    set downloadFolder to (path to downloads folder) as text
+    set fileCount to count of (every file of folder downloadFolder)
+end tell
+
+if fileCount > 50 then
+    open location "sorty://organize?path=/Users/me/Downloads&persona=general&autostart=true"
+    display notification "Starting organization of " & fileCount & " files" with title "Sorty"
+else
+    display notification "Only " & fileCount & " files. Skipping organization." with title "Sorty"
+end if
+```
+
+### Generate Persona from Selection
+
+```applescript
+tell application "System Events"
+    set promptText to text returned of (display dialog "Describe your organization needs:" default answer "")
+end tell
+
+set encodedPrompt to do shell script "python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1]))' " & quoted form of promptText
+
+open location "sorty://persona?action=generate&generate=true&prompt=" & encodedPrompt
+```
+
+## Shortcuts App Integration
+
+Create powerful workflows using the Shortcuts app:
+
+### Example: Organize Current Folder
+
+1. Add **Get Folder** action
+2. Add **Get Variable** action (select Folder)
+3. Add **URL Encode** action
+4. Add **Text** action:
+   ```
+   sorty://organize?path=[Encoded Folder]&autostart=true
+   ```
+5. Add **Open URLs** action
+
+### Example: Daily Downloads Cleanup
+
+1. Add **Text** action:
+   ```
+   sorty://organize?path=/Users/YOUR_USERNAME/Downloads&persona=general&autostart=true
+   ```
+2. Add **Open URLs** action
+3. Schedule to run daily at 9 AM
+
+### Example: Smart Duplicate Scanner
+
+1. Add **Ask for Input** (File Picker)
+2. Add **Get Variable** → **URL Encode**
+3. Add **Text**:
+   ```
+   sorty://duplicates?path=[Encoded Folder]&autostart=true
+   ```
+4. Add **Open URLs**
+
+## Shell Script Integration
+
+### URL Encoding Helper Function
+
+```bash
+#!/bin/bash
+
+urlencode() {
+    python3 -c "import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe='/'))"
+```
+
+### Organize with Encoded Path
+
+```bash
+#!/bin/bash
+
+TARGET_DIR="$HOME/Downloads"
+ENCODED=$(urlencode "$TARGET_DIR")
+
+open "sorty://organize?path=${ENCODED}&autostart=true"
+```
+
+### Interactive Persona Generator
+
+```bash
+#!/bin/bash
+
+echo "Describe your organization needs:"
+read -r PROMPT
+
+ENCODED=$(urlencode "$PROMPT")
+
+open "sorty://persona?action=generate&generate=true&prompt=${ENCODED}"
+```
+
+## Common Patterns
+
+### Weekly Automation
+
+Use a LaunchAgent to run weekly organization:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.sorty.weekly-organize</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/open</string>
+        <string>sorty://organize?path=/Users/YOUR_USERNAME/Documents&autostart=true</string>
+    </array>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Weekday</key>
+        <integer>1</integer>
+        <key>Hour</key>
+        <integer>9</integer>
+    </dict>
+</dict>
+</plist>
+```
+
+### Hazel Integration
+
+Trigger organization when folder size exceeds threshold:
+
+1. Create Hazel rule: "Folder size is greater than 1 GB"
+2. Action: Run shell script
+   ```bash
+   open "sorty://organize?path=$1&autostart=true"
+   ```
+
+### Alfred Workflow
+
+Create a keyword trigger:
+
+1. Keyword: `org {query}`
+2. Action: Open URL
+   ```
+   sorty://organize?path={query}&autostart=true
+   ```
+
+## URL Encoding Reference
+
+Common characters that need encoding:
+
+| Character | Encoded |
+|-----------|--------|
+| Space | `%20` |
+| `/` | `/` (safe) |
+| `?` | `%3F` |
+| `&` | `%26` |
+| `=` | `%3D` |
+| `#` | `%23` |
+| `%` | `%25` |
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Deeplink doesn't open the app">
+    - Ensure Sorty.app is installed in `/Applications`
+    - Verify the URL scheme is correctly formatted
+    - Check that there are no typos in the route name
+    - Try running from Terminal: `open "sorty://health"`
+  </Accordion>
+
+  <Accordion title="Path parameter not working">
+    - Ensure the path is absolute (starts with `/`)
+    - Verify the path exists and is a directory
+    - Check that the path is properly URL-encoded
+    - Use `python3` URL encoding for complex paths
+  </Accordion>
+
+  <Accordion title="Autostart parameter ignored">
+    - The value must be exactly `true` (lowercase)
+    - Verify AI provider is configured in Settings
+    - Check that the target directory is accessible
+  </Accordion>
+
+  <Accordion title="Persona not recognized">
+    - Use the persona ID, not the display name
+    - Check available persona IDs in Settings
+    - Ensure custom personas use their unique ID
+  </Accordion>
+</AccordionGroup>
+
+## Security Considerations
+
+<Warning>
+Deeplinks can trigger file operations. When building automation:
+- Always validate paths before passing to deeplinks
+- Use absolute paths to avoid ambiguity
+- Test with `--auto` disabled first
+- Be cautious when running as scheduled tasks
+</Warning>
+
+<Tip>
+For sensitive operations, consider requiring user confirmation even when using `autostart=true` by omitting the parameter and reviewing the preview first.
+</Tip>
+
+## Reference Table
+
+Complete deeplink reference:
+
+| Route | Primary Use | Key Parameters |
+|-------|-------------|----------------|
+| `sorty://organize` | Start organization | `path`, `persona`, `autostart` |
+| `sorty://duplicates` | Scan duplicates | `path`, `autostart` |
+| `sorty://persona` | Manage personas | `action`, `prompt`, `generate` |
+| `sorty://watched` | Watched folders | `action`, `path` |
+| `sorty://exclusions` | Exclusion rules | `action`, `pattern` |
+| `sorty://storage` | Storage locations | `action`, `path` |
+| `sorty://settings` | Open settings | `section` |
+| `sorty://health` | Workspace health | None |
+| `sorty://learnings` | The Learnings | `action` |
+| `sorty://history` | View history | None |
+| `sorty://help` | Open help | `section` |
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="CLI Tools" icon="terminal" href="/automation/cli-tools">
+    Learn about the command-line interface
+  </Card>
+  <Card title="Finder Integration" icon="folder" href="/automation/finder-integration">
+    Set up Finder extension for right-click organization
+  </Card>
+</CardGroup>

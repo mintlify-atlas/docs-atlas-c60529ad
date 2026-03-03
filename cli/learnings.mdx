@@ -1,0 +1,582 @@
+---
+title: learnings CLI Reference
+description: Command-line interface for managing The Learnings profile and data
+---
+
+# learnings CLI Reference
+
+The `learnings` command-line tool provides access to your AI learning profile, allowing you to view status, export data, and manage learning preferences from the terminal.
+
+<Note>
+Full access to learning data requires biometric authentication in the main Sorty app. The CLI provides limited access for security reasons.
+</Note>
+
+## Installation
+
+The `learnings` CLI is included with Sorty and installed alongside the main `sorty` command:
+
+```bash
+make install
+```
+
+## Usage
+
+```bash
+learnings <command> [options]
+```
+
+---
+
+## Commands
+
+### status
+
+Show current learning status and basic statistics.
+
+```bash
+learnings status
+learnings --status
+```
+
+#### Output
+
+```
+═══════════════════════════════════
+       THE LEARNINGS - STATUS       
+═══════════════════════════════════
+
+  ✅ Status: Active
+  🔒 Authentication: Required (Touch ID / Passcode)
+  📁 Storage: Encrypted (.learning file)
+  📅 Since: January 15, 2026
+
+  Note: Use the main app for full access.
+```
+
+#### Status Indicators
+
+| Indicator | Meaning |
+|-----------|----------|
+| ✅ Active | Learning is enabled and collecting data |
+| ⏸️ Paused | Consent withdrawn, data preserved |
+| ⚠️ Not Set Up | Initial setup not completed |
+
+---
+
+### stats
+
+Show detailed statistics and learned patterns.
+
+```bash
+learnings stats
+learnings --stats
+```
+
+#### Output
+
+```
+═══════════════════════════════════
+     THE LEARNINGS - STATISTICS     
+═══════════════════════════════════
+
+  Note: Detailed stats require authentication in the main app.
+  CLI shows file-level information only.
+
+  📊 Profile: Exists
+  🔐 Encryption: Enabled
+
+  To view detailed stats:
+    1. Open Sorty
+    2. Navigate to The Learnings (⇧⌘L)
+    3. Authenticate with Touch ID / Passcode
+```
+
+<Warning>
+Detailed statistics (learned preferences, correction counts, honing answers) require biometric authentication and can only be viewed in the main app.
+</Warning>
+
+---
+
+### export
+
+Export learning profile data in various formats.
+
+```bash
+learnings export [format]
+```
+
+<ParamField path="format" type="string" default="json">
+  Export format. Options:
+  - `json` - Complete profile data in JSON format
+  - `summary` - Anonymized statistics and summaries
+</ParamField>
+
+#### Examples
+
+```bash
+# Export as JSON (default)
+learnings export
+learnings export json
+
+# Export summary
+learnings export summary
+```
+
+#### Security Note
+
+```
+⚠️  For security, full profile export is only available in the main app.
+
+To export your learning data:
+  1. Open Sorty
+  2. Navigate to The Learnings (⇧⌘L)
+  3. Authenticate and use the export function
+```
+
+Export functionality is restricted to the main app to prevent unauthorized access to sensitive learning data.
+
+---
+
+### clear
+
+Permanently delete all learning data.
+
+```bash
+learnings clear
+learnings --clear
+```
+
+<Warning>
+This action CANNOT be undone. All learned preferences, honing answers, corrections, and inferred rules will be permanently deleted.
+</Warning>
+
+#### Interactive Confirmation
+
+```
+⚠️  DELETE ALL LEARNING DATA
+
+This will permanently delete:
+  • All learned preferences
+  • Honing answers
+  • Correction history
+  • Inferred rules
+
+This action CANNOT be undone.
+
+Are you sure? Type 'DELETE' to confirm: _
+```
+
+You must type `DELETE` (all caps) to confirm deletion.
+
+#### What Gets Deleted
+
+- **Steering Prompts**: Post-organization feedback
+- **Honing Answers**: Explicit preference answers
+- **Guiding Instructions**: Pre-organization instructions
+- **Manual Corrections**: File move corrections
+- **Reverts**: Organization session undos
+- **Inferred Rules**: AI-generated organization rules
+
+#### After Deletion
+
+```
+✅ All learning data has been securely deleted.
+```
+
+Data is securely overwritten before removal using `LearningsFileManager.secureDelete()`.
+
+---
+
+### withdraw
+
+Pause learning without deleting existing data.
+
+```bash
+learnings withdraw
+learnings --withdraw
+```
+
+#### Confirmation Prompt
+
+```
+Withdraw Consent
+
+This will:
+  • Stop learning from your behavior
+  • Keep existing data (can be deleted separately)
+  • Allow re-enabling later
+
+Proceed? (y/n): _
+```
+
+#### After Withdrawal
+
+```
+✅ Learning paused. Your existing data is preserved.
+   Re-enable in the Learnings dashboard.
+```
+
+#### Behavior
+
+- Stops passive data collection
+- Preserves all existing learning data
+- AI suggestions continue using current data
+- Can be re-enabled via main app or by granting consent again
+
+---
+
+### info
+
+Show system information and security details.
+
+```bash
+learnings info
+learnings --info
+```
+
+#### Output
+
+```
+═══════════════════════════════════
+     THE LEARNINGS - SYSTEM INFO    
+═══════════════════════════════════
+
+  📦 Version: 1.0.0 (build 42)
+  🔐 Security: AES-256 + Keychain
+  🔑 Auth: Touch ID / Face ID / Passcode
+  ⏱️  Session Timeout: 5 minutes
+  💾 Storage: /Users/username/Library/Application Support/Sorty/Learnings
+  📁 Profile Path: /Users/username/Library/Application Support/Sorty/Learnings/username.learning
+  📄 File Format: .learning (encrypted JSON)
+
+  Privacy:
+    • All data stored locally
+    • Never sent to external servers
+    • Only used to improve AI suggestions
+    • Can be deleted at any time
+```
+
+#### Information Provided
+
+| Field | Description |
+|-------|-------------|
+| Version | Sorty app version and build number |
+| Security | Encryption algorithm (AES-256) |
+| Auth | Biometric authentication methods |
+| Session Timeout | Automatic lock duration |
+| Storage | Base directory for learning files |
+| Profile Path | Full path to encrypted profile |
+| File Format | File extension and encryption status |
+
+---
+
+### help
+
+Show CLI help message.
+
+```bash
+learnings help
+learnings --help
+learnings -h
+```
+
+#### Output
+
+```
+Learnings CLI - Manage your organization learning profile
+
+USAGE:
+  learnings <command> [options]
+
+COMMANDS:
+  status      Show current learning status and basic stats
+  stats       Show detailed statistics and learned patterns
+  export      Export profile data (format: json|summary)
+  clear       Delete all learning data (requires confirmation)
+  withdraw    Pause learning without deleting data
+  info        Show system information
+  help        Show this help message
+
+EXAMPLES:
+  learnings status
+  learnings stats
+  learnings export json
+  learnings clear
+
+NOTES:
+  - Full profile access requires biometric authentication in the main app
+  - Some commands show limited info when accessed via CLI
+  - Use 'sorty learnings' to open the Learnings dashboard
+```
+
+---
+
+## Security Model
+
+The Learnings CLI implements strict security measures:
+
+### Biometric Protection
+
+- Touch ID / Face ID required for full access
+- CLI shows limited metadata only
+- Sensitive data never exposed via CLI
+
+### AES-256 Encryption
+
+- All profile data encrypted at rest
+- Encryption keys stored in macOS Keychain
+- Keys never accessible via CLI
+
+### Session Management
+
+- 5-minute automatic session timeout
+- Re-authentication required after timeout
+- Only in main app (CLI doesn't maintain sessions)
+
+### Secure Deletion
+
+```swift
+// From LearningsFileManager.swift
+static func secureDelete() throws {
+    // Overwrite file data before deletion
+    // Remove from filesystem
+    // Clear Keychain entries
+}
+```
+
+Data is overwritten with random bytes before removal.
+
+---
+
+## File Structure
+
+### Storage Location
+
+```
+~/Library/Application Support/Sorty/Learnings/
+├── <username>.learning          # Encrypted profile
+└── <username>.learning.backup   # Encrypted backup
+```
+
+### Profile Format
+
+Encrypted JSON structure (`.learning` file):
+
+```json
+{
+  "version": "1.0",
+  "userId": "hashed-identifier",
+  "created": "2026-01-15T10:30:00Z",
+  "lastModified": "2026-03-03T14:22:00Z",
+  "preferences": { "encrypted": true },
+  "corrections": { "encrypted": true },
+  "honingAnswers": { "encrypted": true },
+  "inferredRules": { "encrypted": true }
+}
+```
+
+<Note>
+The actual file content is encrypted. This structure is illustrative only.
+</Note>
+
+---
+
+## Learning Data Types
+
+The Learnings system captures six types of behavioral data:
+
+### 1. Steering Prompts (Highest Priority)
+
+Post-organization feedback and corrections:
+
+```bash
+# Example: After organizing, you provide feedback
+"Keep all client work in separate folders by year"
+```
+
+### 2. Honing Answers (High Priority)
+
+Explicit preferences from Q&A sessions:
+
+```bash
+# Example honing question:
+Q: "When you finish a project, what is your preferred archival strategy?"
+A: "Move to Archive/{Year}/{Project Name} and add 'Archived' tag"
+```
+
+### 3. Guiding Instructions (High Priority)
+
+Pre-organization custom instructions:
+
+```bash
+# Example: Before organizing
+"Group all photos by event, then by date"
+```
+
+### 4. Manual Corrections (Medium Priority)
+
+Files you manually move after AI organization:
+
+```bash
+# Example: Moving a file
+Documents/invoice.pdf → Finances/2026/Invoices/invoice.pdf
+```
+
+### 5. Reverts (Medium Priority)
+
+Organization sessions you undo:
+
+```bash
+# Example: Pressing ⌘Z after organization
+# System learns what patterns to avoid
+```
+
+### 6. Additional Instructions (Medium Priority)
+
+Instructions during organization:
+
+```bash
+# Example: Modifying plan before applying
+"Create subfolders by month"
+```
+
+---
+
+## Privacy & Data
+
+### What's Stored
+
+| Data Type | Stored | Encrypted | Exportable |
+|-----------|--------|-----------|------------|
+| File names | ✅ | ✅ | ✅ (app only) |
+| File paths | ✅ | ✅ | ✅ (app only) |
+| Folder preferences | ✅ | ✅ | ✅ (app only) |
+| Correction history | ✅ | ✅ | ✅ (app only) |
+| Honing answers | ✅ | ✅ | ✅ (app only) |
+| File contents | ❌ | — | — |
+| AI requests | ❌ | — | — |
+
+### What's NOT Stored
+
+- File contents or text
+- AI API requests/responses
+- Personal information
+- Biometric data
+
+### Local-Only Storage
+
+- All data remains on your Mac
+- Never uploaded to cloud services
+- Never sent to AI providers
+- Not accessible over network
+
+---
+
+## Integration Examples
+
+### Pre-Flight Check Script
+
+```bash
+#!/bin/bash
+# Check learning status before organization
+
+if learnings status | grep -q "Active"; then
+    echo "✅ Learning enabled"
+    sorty organize . --auto
+else
+    echo "⚠️  Learning disabled - enable in app first"
+    sorty learnings
+fi
+```
+
+### Backup Learning Data
+
+```bash
+#!/bin/bash
+# Backup learning profile (encrypted)
+
+SOURCE="$HOME/Library/Application Support/Sorty/Learnings"
+BACKUP="$HOME/Backups/Sorty/$(date +%Y-%m-%d)"
+
+mkdir -p "$BACKUP"
+cp -R "$SOURCE" "$BACKUP/"
+echo "✅ Backed up to $BACKUP"
+```
+
+### Scheduled Status Report
+
+```bash
+#!/bin/bash
+# Weekly learning status report
+
+echo "Weekly Learnings Report - $(date)"
+echo "====================================="
+learnings status
+learnings stats
+```
+
+### Alfred Workflow
+
+```bash
+# Quick access to Learnings dashboard
+tell application "System Events"
+    do shell script "/usr/local/bin/sorty learnings"
+end tell
+```
+
+---
+
+## Troubleshooting
+
+### Profile Not Found
+
+```bash
+$ learnings stats
+📊 Profile: Not Created
+```
+
+**Solution**: Open Sorty app and complete initial setup (⇧⌘L → Enable Learning).
+
+### Authentication Required
+
+```
+⚠️  For security, full profile export is only available in the main app.
+```
+
+**Solution**: Sensitive operations require the main app with biometric authentication.
+
+### Version Shows 'dev'
+
+```bash
+$ learnings info
+📦 Version: dev (build dev)
+```
+
+**Solution**: Running from Xcode/development. Production builds show actual version.
+
+### Permission Denied
+
+```bash
+$ learnings clear
+❌ Failed to delete: Permission denied
+```
+
+**Solution**: Ensure you have write access to `~/Library/Application Support/Sorty/Learnings/`.
+
+---
+
+## Exit Codes
+
+| Code | Meaning |
+|------|----------|
+| `0` | Success |
+| `1` | Error (invalid command, missing args, etc.) |
+
+---
+
+## See Also
+
+- [sorty CLI Reference](/cli/sorty) - Main Sorty CLI tool
+- [The Learnings Guide](/features/the-learnings) - Complete feature documentation
+- [Security & Privacy](/advanced/security) - Data protection details
+- [Deeplinks Overview](/deeplinks/overview) - URL scheme reference

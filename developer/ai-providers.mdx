@@ -1,0 +1,679 @@
+---
+title: 'Adding AI Providers'
+description: 'Step-by-step guide to integrating new AI providers into Sorty'
+---
+
+## Overview
+
+Sorty's AI provider system is designed to be extensible. All AI providers implement the `AIClientProtocol` interface, which standardizes how Sorty communicates with different AI services.
+
+This guide walks through adding support for a new AI provider to Sorty.
+
+## Prerequisites
+
+- Understanding of Swift async/await
+- Familiarity with the provider's API (REST/HTTP)
+- API documentation for your target provider
+- API key for testing
+
+## The AIClientProtocol
+
+Every AI client must conform to this protocol:
+
+```swift
+// Sources/SortyLib/AI/AIClientProtocol.swift:18-25
+public protocol AIClientProtocol: Sendable {
+    func analyze(files: [FileItem], customInstructions: String?, 
+                 personaPrompt: String?, temperature: Double?) async throws -> OrganizationPlan
+    
+    func analyzeWithImages(files: [FileItem], imageData: [String: Data], 
+                          customInstructions: String?, personaPrompt: String?, 
+                          temperature: Double?) async throws -> OrganizationPlan
+    
+    func generateText(prompt: String, systemPrompt: String?) async throws -> String
+    
+    func checkHealth() async throws
+    
+    var config: AIConfig { get }
+    
+    @MainActor var streamingDelegate: StreamingDelegate? { get set }
+}
+```
+
+### Protocol Methods
+
+- **analyze**: Main method for file organization
+- **analyzeWithImages**: For providers with vision/multimodal support
+- **generateText**: General-purpose text generation (used for persona chat, etc.)
+- **checkHealth**: Verify connectivity and credentials
+- **streamingDelegate**: Optional streaming support for real-time progress
+
+## Step-by-Step Implementation
+
+<Steps>
+  <Step title="Add Provider to AIProvider Enum">
+    First, add your provider to the `AIProvider` enum in `AIConfig.swift`:
+    
+    ```swift
+    // Sources/SortyLib/Models/AIConfig.swift:11-20
+    public enum AIProvider: String, Codable, CaseIterable, Sendable {
+        case openAI = "openai"
+        case anthropic = "anthropic"
+        case gemini = "gemini"
+        // Add your provider:
+        case myProvider = "my_provider"
+        // ...
+    }
+    ```
+    
+    Configure provider metadata:
+    
+    ```swift
+    // In AIProvider extension
+    public var displayName: String {
+        switch self {
+        case .myProvider:
+            return "My Provider"
+        // ...
+        }
+    }
+    
+    public var defaultAPIURL: String? {
+        switch self {
+        case .myProvider:
+            return "https://api.myprovider.com/v1"
+        // ...
+        }
+    }
+    
+    public var defaultModel: String {
+        switch self {
+        case .myProvider:
+            return "my-model-name"
+        // ...
+        }
+    }
+    
+    public var typicallyRequiresAPIKey: Bool {
+        switch self {
+        case .myProvider:
+            return true  // or false for local providers
+        // ...
+        }
+    }
+    
+    public var apiKeyHelpText: String {
+        switch self {
+        case .myProvider:
+            return "Get your API key from myprovider.com/keys"
+        // ...
+        }
+    }
+    
+    public var recommendedModels: [String] {
+        switch self {
+        case .myProvider:
+            return ["my-model-1", "my-model-2", "my-model-3"]
+        // ...
+        }
+    }
+    ```
+  </Step>
+
+  <Step title="Create Client Implementation">
+    Create a new file `Sources/SortyLib/AI/MyProviderClient.swift`:
+    
+    ```swift
+    //
+    //  MyProviderClient.swift
+    //  Sorty
+    //
+    //  My Provider API client implementation
+    //
+    
+    import Foundation
+    
+    public final class MyProviderClient: AIClientProtocol, Sendable {
+        public let config: AIConfig
+        @MainActor public weak var streamingDelegate: StreamingDelegate?
+        
+        public init(config: AIConfig) {
+            self.config = config
+        }
+        
+        public func analyze(
+            files: [FileItem], 
+            customInstructions: String?, 
+            personaPrompt: String?, 
+            temperature: Double?
+        ) async throws -> OrganizationPlan {
+            // 1. Validate configuration
+            let apiURL = try AIRequestSupport.requireAPIURL(from: config)
+            try AIRequestSupport.requireAPIKeyIfNeeded(from: config)
+            
+            // 2. Build prompts using PromptBuilder
+            let systemPrompt = config.systemPromptOverride ?? 
+                PromptBuilder.buildSystemPrompt(
+                    personaInfo: personaPrompt ?? "",
+                    maxTopLevelFolders: config.maxTopLevelFolders,
+                    mode: config.mode,
+                    enableTagging: config.enableFileTagging
+                )
+            
+            let userPrompt = PromptBuilder.buildOrganizationPrompt(
+                files: files,
+                mode: config.mode,
+                namingStyle: config.namingStyle,
+                customNamingInstructions: config.customNamingInstructions,
+                renameRules: config.renameRules,
+                renameRuleMode: config.renameRuleMode,
+                enableReasoning: config.enableReasoning,
+                enableSmartRename: config.enableSmartRename,
+                includeContentMetadata: true,
+                customInstructions: customInstructions
+            )
+            
+            // 3. Build request body (provider-specific format)
+            let requestBody: [String: Any] = [
+                "model": config.model,
+                "messages": [
+                    ["role": "system", "content": systemPrompt],
+                    ["role": "user", "content": userPrompt]
+                ],
+                "temperature": temperature ?? config.temperature
+            ]
+            
+            // Add max_tokens if specified
+            if let maxTokens = config.maxTokens {
+                requestBody["max_tokens"] = maxTokens
+            }
+            
+            // 4. Make network request
+            let url = URL(string: "\(apiURL)/chat/completions")!
+            var headers: [String: String] = [:]
+            if let apiKey = config.apiKey, !apiKey.isEmpty {
+                headers["Authorization"] = "Bearer \(apiKey)"
+            }
+            
+            let request = try AIRequestSupport.makeJSONRequest(
+                url: url, 
+                headers: headers, 
+                body: requestBody
+            )
+            
+            let session = await AIRequestSupport.session(for: config)
+            let (data, response) = try await AIRequestSupport.withTransientRetry {
+                try await session.data(for: request)
+            }
+            
+            // 5. Validate response
+            _ = try AIRequestSupport.validateHTTPResponse(data: data, response: response)
+            
+            // 6. Parse JSON response
+            let jsonResponse = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+            
+            guard let choices = jsonResponse?["choices"] as? [[String: Any]],
+                  let firstChoice = choices.first,
+                  let content = AIRequestSupport.extractChatMessageText(from: firstChoice),
+                  !content.isEmpty else {
+                throw AIClientError.invalidResponseFormat
+            }
+            
+            // 7. Parse AI response into OrganizationPlan
+            return try ResponseParser.parseResponse(
+                content, 
+                originalFiles: files, 
+                mode: config.mode
+            )
+        }
+        
+        public func analyzeWithImages(
+            files: [FileItem], 
+            imageData: [String: Data], 
+            customInstructions: String?, 
+            personaPrompt: String?, 
+            temperature: Double?
+        ) async throws -> OrganizationPlan {
+            // Similar to analyze() but include images in request
+            // See OpenAIClient.swift:61-121 or AnthropicClient.swift:61-120 for examples
+            throw AIClientError.apiError(
+                statusCode: 501, 
+                message: "Vision not yet implemented for this provider"
+            )
+        }
+        
+        public func generateText(
+            prompt: String, 
+            systemPrompt: String?
+        ) async throws -> String {
+            // Simple text generation for persona chat, etc.
+            let apiURL = try AIRequestSupport.requireAPIURL(from: config)
+            let url = URL(string: "\(apiURL)/chat/completions")!
+            
+            let requestBody: [String: Any] = [
+                "model": config.model,
+                "messages": [
+                    ["role": "system", "content": systemPrompt ?? "You are a helpful assistant."],
+                    ["role": "user", "content": prompt]
+                ],
+                "temperature": 0.7
+            ]
+            
+            var headers: [String: String] = [:]
+            if let apiKey = config.apiKey, !apiKey.isEmpty {
+                headers["Authorization"] = "Bearer \(apiKey)"
+            }
+            
+            let request = try AIRequestSupport.makeJSONRequest(
+                url: url, 
+                headers: headers, 
+                body: requestBody
+            )
+            
+            let session = await AIRequestSupport.session(for: config)
+            let (data, response) = try await AIRequestSupport.withTransientRetry {
+                try await session.data(for: request)
+            }
+            
+            _ = try AIRequestSupport.validateHTTPResponse(data: data, response: response)
+            
+            let jsonResponse = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+            guard let choices = jsonResponse?["choices"] as? [[String: Any]],
+                  let firstChoice = choices.first,
+                  let content = AIRequestSupport.extractChatMessageText(from: firstChoice),
+                  !content.isEmpty else {
+                throw AIClientError.invalidResponseFormat
+            }
+            
+            return content
+        }
+        
+        public func checkHealth() async throws {
+            // Verify API connectivity
+            let apiURL = try AIRequestSupport.requireAPIURL(from: config)
+            let url = URL(string: "\(apiURL)/models")!  // Or any health check endpoint
+            
+            var headers: [String: String] = [:]
+            if config.requiresAPIKey, let apiKey = config.apiKey, !apiKey.isEmpty {
+                headers["Authorization"] = "Bearer \(apiKey)"
+            }
+            
+            var request = try AIRequestSupport.makeJSONRequest(
+                url: url, 
+                method: "GET", 
+                headers: headers
+            )
+            request.timeoutInterval = min(config.requestTimeout, 60)
+            
+            let session = await AIRequestSupport.session(for: config)
+            let (data, response) = try await AIRequestSupport.withTransientRetry {
+                try await session.data(for: request)
+            }
+            
+            _ = try AIRequestSupport.validateHTTPResponse(data: data, response: response)
+        }
+    }
+    ```
+  </Step>
+
+  <Step title="Register in AIClientFactory">
+    Add your client to the factory in `Sources/SortyLib/AI/AIClientFactory.swift`:
+    
+    ```swift
+    public struct AIClientFactory {
+        public static func createClient(config: AIConfig) throws -> AIClientProtocol {
+            switch config.provider {
+            case .openAI, .groq, .openAICompatible, .openRouter, .ollama, .gemini:
+                return OpenAIClient(config: config)
+                
+            case .githubCopilot:
+                return GitHubCopilotClient(config: config)
+                
+            case .anthropic:
+                return AnthropicClient(config: config)
+                
+            // Add your provider:
+            case .myProvider:
+                return MyProviderClient(config: config)
+                
+            case .appleFoundationModel:
+                // ... existing code ...
+            }
+        }
+    }
+    ```
+  </Step>
+
+  <Step title="Add Unit Tests">
+    Create `Tests/SortyTests/MyProviderClientTests.swift`:
+    
+    ```swift
+    import XCTest
+    @testable import SortyLib
+    
+    class MyProviderClientTests: XCTestCase {
+        func testAnalyze() async throws {
+            let config = AIConfig(
+                provider: .myProvider,
+                apiURL: "http://localhost:8000",
+                apiKey: "test-key",
+                model: "test-model"
+            )
+            
+            let client = MyProviderClient(config: config)
+            
+            let testFiles = [
+                FileItem(
+                    name: "document.pdf",
+                    path: "/tmp/document.pdf",
+                    size: 1024,
+                    modificationDate: Date(),
+                    extension: "pdf"
+                )
+            ]
+            
+            // Note: This requires a running test server
+            // You may want to use a MockAIClient instead
+            do {
+                let plan = try await client.analyze(
+                    files: testFiles,
+                    customInstructions: nil,
+                    personaPrompt: nil,
+                    temperature: nil
+                )
+                
+                XCTAssertFalse(plan.suggestions.isEmpty, "Plan should contain suggestions")
+            } catch {
+                // Handle expected errors in test environment
+                XCTFail("Analysis failed: \(error)")
+            }
+        }
+        
+        func testCheckHealth() async throws {
+            let config = AIConfig(
+                provider: .myProvider,
+                apiURL: "http://localhost:8000",
+                apiKey: "test-key",
+                model: "test-model"
+            )
+            
+            let client = MyProviderClient(config: config)
+            
+            do {
+                try await client.checkHealth()
+            } catch {
+                // Handle expected errors in test environment
+                XCTFail("Health check failed: \(error)")
+            }
+        }
+    }
+    ```
+  </Step>
+
+  <Step title="Test Your Implementation">
+    Build and test your implementation:
+    
+    ```bash
+    # Build the project
+    make build
+    
+    # Run tests
+    make test
+    
+    # Or run specific test
+    swift test --filter MyProviderClientTests
+    ```
+  </Step>
+</Steps>
+
+## Streaming Support (Optional)
+
+For real-time progress updates, implement streaming:
+
+```swift
+private func analyzeWithStreaming(
+    url: URL, 
+    requestBody: [String: Any], 
+    files: [FileItem]
+) async throws -> OrganizationPlan {
+    var streamingRequestBody = requestBody
+    streamingRequestBody["stream"] = true
+    
+    var headers: [String: String] = [:]
+    if let apiKey = config.apiKey, !apiKey.isEmpty {
+        headers["Authorization"] = "Bearer \(apiKey)"
+    }
+    
+    let request = try AIRequestSupport.makeJSONRequest(
+        url: url, 
+        headers: headers, 
+        body: streamingRequestBody
+    )
+    
+    var accumulatedContent = ""
+    
+    let session = await AIRequestSupport.session(for: config)
+    let (bytes, response) = try await session.bytes(for: request)
+    
+    guard let httpResponse = response as? HTTPURLResponse,
+          (200...299).contains(httpResponse.statusCode) else {
+        throw AIClientError.invalidResponse
+    }
+    
+    // Process Server-Sent Events (SSE) stream
+    for try await line in bytes.lines {
+        // Parse SSE format: "data: {json}"
+        guard line.hasPrefix("data: ") else { continue }
+        let jsonString = String(line.dropFirst(6)).trimmingCharacters(in: .whitespaces)
+        
+        if jsonString == "[DONE]" { break }
+        
+        guard let jsonData = jsonString.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any],
+              let choices = json["choices"] as? [[String: Any]],
+              let firstChoice = choices.first else {
+            continue
+        }
+        
+        // Extract chunk from delta
+        if let chunk = AIRequestSupport.extractChatDeltaText(from: firstChoice),
+           !chunk.isEmpty {
+            accumulatedContent += chunk
+            
+            // Notify delegate
+            await MainActor.run {
+                streamingDelegate?.didReceiveChunk(chunk)
+            }
+        }
+    }
+    
+    // Notify completion
+    await MainActor.run {
+        streamingDelegate?.didComplete(content: accumulatedContent)
+    }
+    
+    // Parse final response
+    return try ResponseParser.parseResponse(
+        accumulatedContent, 
+        originalFiles: files, 
+        mode: config.mode
+    )
+}
+```
+
+See `OpenAIClient.swift:248-371` for a complete streaming implementation example.
+
+## Helper Utilities
+
+Sorty provides utility functions in `AIRequestSupport` for common tasks:
+
+```swift
+// Validate API URL
+let apiURL = try AIRequestSupport.requireAPIURL(from: config)
+
+// Validate API key if required
+try AIRequestSupport.requireAPIKeyIfNeeded(from: config)
+
+// Build standard OpenAI-compatible URLs
+let chatURL = try AIRequestSupport.openAIChatCompletionsURL(from: apiURL)
+let modelsURL = try AIRequestSupport.openAIModelsURL(from: apiURL)
+
+// Create JSON request
+let request = try AIRequestSupport.makeJSONRequest(
+    url: url,
+    method: "POST",
+    headers: headers,
+    body: requestBody
+)
+
+// Get configured URLSession
+let session = await AIRequestSupport.session(for: config)
+
+// Retry logic for transient failures
+let (data, response) = try await AIRequestSupport.withTransientRetry {
+    try await session.data(for: request)
+}
+
+// Validate HTTP response
+_ = try AIRequestSupport.validateHTTPResponse(data: data, response: response)
+
+// Extract text from various response formats
+let text = AIRequestSupport.extractChatMessageText(from: messageDict)
+let deltaText = AIRequestSupport.extractChatDeltaText(from: deltaDict)
+```
+
+## Response Parsing
+
+The `ResponseParser` handles converting AI responses to `OrganizationPlan`:
+
+```swift
+// Parse JSON response into OrganizationPlan
+let plan = try ResponseParser.parseResponse(
+    aiResponseText,
+    originalFiles: files,
+    mode: config.mode
+)
+
+// Partial extraction for streaming (if main parse fails)
+if let partialPlan = ResponseParser.extractPartialResults(
+    incompleteContent,
+    originalFiles: files,
+    mode: config.mode
+) {
+    // Use partial plan
+}
+```
+
+## Error Handling
+
+Use `AIClientError` for all client errors:
+
+```swift
+public enum AIClientError: LocalizedError, Sendable {
+    case missingAPIURL
+    case missingAPIKey
+    case invalidURL
+    case invalidResponse
+    case invalidResponseFormat
+    case apiError(statusCode: Int, message: String)
+    case networkError(any Error & Sendable)
+    case jsonDecodingError(context: String)
+}
+```
+
+Example:
+
+```swift
+if response.statusCode == 401 {
+    throw AIClientError.apiError(
+        statusCode: 401, 
+        message: "Invalid API key"
+    )
+}
+
+if content.isEmpty {
+    throw AIClientError.invalidResponseFormat
+}
+```
+
+## Common Patterns
+
+### OpenAI-Compatible APIs
+
+Many providers use OpenAI-compatible endpoints. You can often reuse `OpenAIClient` by just changing the URL:
+
+```swift
+case .myOpenAICompatibleProvider:
+    return OpenAIClient(config: config)
+```
+
+Then set `defaultAPIURL` to your provider's endpoint.
+
+### Custom Request Formats (Anthropic-style)
+
+Some providers use different request structures. See `AnthropicClient.swift` for an example of adapting to a different API format:
+
+```swift
+let requestBody: [String: Any] = [
+    "model": config.model,
+    "max_tokens": config.maxTokens ?? 4096,
+    "system": systemPrompt,  // Anthropic uses separate system field
+    "messages": [
+        ["role": "user", "content": userPrompt]
+    ],
+    "temperature": temperature ?? config.temperature
+]
+
+let headers = [
+    "x-api-key": apiKey,  // Anthropic uses x-api-key instead of Authorization
+    "anthropic-version": "2023-06-01"
+]
+```
+
+## Testing
+
+For testing without a real API:
+
+```swift
+#if DEBUG
+@MainActor
+class MockAIClient: AIClientProtocol {
+    var config: AIConfig
+    weak var streamingDelegate: StreamingDelegate?
+    
+    init(config: AIConfig) {
+        self.config = config
+    }
+    
+    func analyze(
+        files: [FileItem],
+        customInstructions: String?,
+        personaPrompt: String?,
+        temperature: Double?
+    ) async throws -> OrganizationPlan {
+        // Return mock plan
+        return OrganizationPlan(
+            suggestions: [
+                FolderSuggestion(
+                    folderName: "Documents",
+                    files: files
+                )
+            ]
+        )
+    }
+    
+    func checkHealth() async throws {
+        // Always succeed
+    }
+    
+    // ... implement other required methods
+}
+#endif
+```
+
+## Next Steps
+
+- Review existing implementations: `OpenAIClient.swift`, `AnthropicClient.swift`
+- Check `AIRequestSupport.swift` for helper functions
+- Read the [Architecture Guide](/developer/architecture) for context
+- Submit your implementation via [Contributing Guidelines](/developer/contributing)

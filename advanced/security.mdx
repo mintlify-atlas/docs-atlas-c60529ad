@@ -1,0 +1,249 @@
+---
+title: 'Security & Privacy'
+description: 'Security features, data handling, and privacy protection in Sorty'
+icon: 'shield-halved'
+---
+
+<Warning>
+  Pre-built releases are **not code-signed**. You must remove the macOS quarantine attribute after installation:
+  ```bash
+  xattr -cr /Applications/Sorty.app
+  ```
+</Warning>
+
+## Security Overview
+
+Sorty is designed with security and privacy as core principles. All sensitive data is encrypted, file operations are sandboxed, and you have full control over what data is shared with AI providers.
+
+## Supported Versions
+
+Security updates are provided for the following versions:
+
+| Version | Supported |
+|---------|----------|
+| 1.0.x   | ✓ Yes    |
+| < 1.0   | ✗ No     |
+
+## Sandboxing & Permissions
+
+Sorty runs within the macOS App Sandbox with these entitlements:
+
+- **User-selected file access** (read/write)
+- **Network access** for AI provider APIs
+- **No system-level access** outside the sandbox
+
+<Info>
+  The app cannot access files or folders you haven't explicitly granted permission to. Watched folders require security bookmarks to maintain access across sessions.
+</Info>
+
+## Data Security
+
+### Local Data Protection
+
+| Data Type | Encryption | Biometric Protection |
+|-----------|------------|---------------------|
+| **The Learnings Profile** | AES-256 | Touch ID/Face ID required |
+| **Organization History** | None (file paths & metadata) | No |
+| **Settings** | None (UserDefaults) | No |
+| **API Keys** | macOS Keychain | System-level |
+
+<Accordion title="Why is The Learnings Profile encrypted?">
+  The Learnings Profile contains your personal organization preferences, file path patterns, and behavioral data. This sensitive information is encrypted with AES-256 and protected by biometric authentication to prevent unauthorized access—even if someone gains physical access to your Mac.
+</Accordion>
+
+### What Data Gets Sent to AI Providers?
+
+When using cloud-based AI providers (OpenAI, Anthropic, Groq, etc.):
+
+<CardGroup cols={2}>
+  <Card title="Always Sent" icon="cloud-arrow-up" color="#ef4444">
+    - File names
+    - File metadata (size, type, modified date)
+    - Directory structure
+  </Card>
+  <Card title="Never Sent" icon="lock" color="#10b981">
+    - File contents (unless Deep Scan is enabled)
+    - Your API keys
+    - Organization history
+    - Personal settings
+  </Card>
+</CardGroup>
+
+<Warning>
+  **Deep Scan Mode**: When enabled, file content excerpts (PDF text, EXIF metadata, document keywords) are sent to the AI for better analysis. Only enable Deep Scan for files you're comfortable analyzing remotely.
+</Warning>
+
+### Privacy-First AI Options
+
+For maximum privacy, use local AI processing:
+
+<Tabs>
+  <Tab title="Ollama">
+    Processes files **entirely on your machine**. No data leaves your computer.
+    
+    ```bash
+    # Install Ollama
+    brew install ollama
+    
+    # Start the server
+    ollama serve
+    
+    # Pull a model
+    ollama pull llama2
+    ```
+    
+    Configure in **Settings → AI Provider → Ollama** (`localhost:11434`).
+  </Tab>
+  <Tab title="Apple Intelligence">
+    **On-device processing** via Apple Foundation Models.
+    
+    **Requirements:**
+    - macOS 15.1+
+    - Apple Silicon (M-series chip)
+    - Apple Intelligence enabled in System Settings
+    
+    No internet required. All processing happens locally.
+  </Tab>
+</Tabs>
+
+## Network Security
+
+- All API calls use **HTTPS with TLS 1.2+**
+- API keys are **never logged** or transmitted outside AI provider endpoints
+- Update checks fetch version data from **GitHub Releases API over HTTPS**
+- **No telemetry or analytics** data is collected
+
+<Accordion title="What network connections does Sorty make?">
+  1. **AI Provider APIs**: Only when you trigger organization or use AI features
+  2. **GitHub Releases API**: For update checks (once per 24 hours, or manually)
+  3. **No other connections**: No tracking, no analytics, no third-party services
+</Accordion>
+
+## Supply Chain Security
+
+- Dependencies are **pinned** in `Package.resolved`
+- GitHub Actions workflows scan for secrets using **Gitleaks**
+- Automated security checks run on **every commit**
+- Build artifacts are **reproducible from source**
+
+## Security Best Practices
+
+### Protecting Your Data
+
+<Steps>
+  <Step title="Use Local AI When Possible">
+    Ollama keeps all processing on your device. Apple Foundation Models require macOS 15+.
+  </Step>
+  <Step title="Secure Your API Keys">
+    - Store keys in the macOS Keychain, not in plain text
+    - Use environment variables for CLI tools
+    - Rotate keys periodically
+    - Never commit keys to version control
+  </Step>
+  <Step title="Review Deep Scan Settings">
+    Deep Scan uploads file content excerpts. Only enable for files you are comfortable analyzing remotely. Disable for sensitive documents.
+  </Step>
+  <Step title="Monitor Watched Folders">
+    Watched folders have persistent file system access. Remove folders you no longer want monitored. Review permissions periodically.
+  </Step>
+  <Step title="Backup Before Major Operations">
+    Safe Deletion provides a recovery window. Consider Time Machine or other backups for important directories. Test the rollback feature before relying on it.
+  </Step>
+</Steps>
+
+## Privacy Mode
+
+**Privacy Mode** is enabled by default and provides visual protection for sensitive information:
+
+- **Blurs sensitive handles** (file paths, API URLs) until hover
+- **Hides API keys** with a manual reveal toggle
+- **Redacts learning profile data** in screenshots
+
+Disable in **Settings → Privacy** if you prefer always-visible information.
+
+## Reporting Security Vulnerabilities
+
+<Warning>
+  **Do NOT open public GitHub issues for security vulnerabilities.**
+</Warning>
+
+### Reporting Process
+
+1. Use [GitHub's private vulnerability reporting](https://github.com/shirishpothi/Sorty/security/advisories/new)
+2. Include steps to reproduce, if possible
+3. Allow up to **48 hours** for acknowledgment
+4. We will provide an estimated timeline for the fix
+
+### What to Report
+
+Report if you notice:
+- Unexpected network connections
+- Files being accessed without your action
+- Unusual API usage patterns
+- Potential data leaks
+- Authentication bypass
+- Encryption vulnerabilities
+
+## Incident Response
+
+In the event of a security incident:
+
+1. Reports are acknowledged within **48 hours**
+2. Affected users are notified via **GitHub releases** and the in-app update system
+3. Fixes are prioritized based on **severity**
+4. Post-incident reports are published for **transparency**
+5. **CVE identifiers** are requested when applicable
+
+## Security-Related Configuration
+
+### Disabling Network Features
+
+To minimize network exposure:
+
+```bash
+# Use local AI only
+# Settings → AI Provider → Ollama (localhost:11434)
+
+# Disable automatic update checks
+# Settings → Updates → Manual only
+```
+
+### Verifying Releases
+
+While releases are not signed, you can verify integrity:
+
+```bash
+# Download release
+# Check SHA256 hash (if provided in release notes)
+shasum -a 256 Sorty.zip
+
+# Or build from source
+git clone https://github.com/shirishpothi/Sorty.git
+cd Sorty
+make build
+```
+
+## Third-Party Security
+
+Sorty integrates with third-party services. Review their security policies:
+
+<CardGroup cols={3}>
+  <Card title="OpenAI" icon="openai" href="https://openai.com/security">
+    Enterprise-grade security
+  </Card>
+  <Card title="Anthropic" icon="shield" href="https://www.anthropic.com/security">
+    SOC 2 Type II certified
+  </Card>
+  <Card title="Groq" icon="microchip" href="https://groq.com/security">
+    Infrastructure security
+  </Card>
+</CardGroup>
+
+## Contact
+
+- **Security Issues**: Use [GitHub's private vulnerability reporting](https://github.com/shirishpothi/Sorty/security/advisories/new)
+- **General Questions**: Open a GitHub discussion (not for vulnerabilities)
+
+---
+
+*Last updated: January 2026*

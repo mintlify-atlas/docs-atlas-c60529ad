@@ -1,0 +1,537 @@
+---
+title: Custom Personas
+description: Tailor AI organization behavior for different workflows with built-in and custom personas
+---
+
+## What Are Personas?
+
+Personas customize how Sorty organizes files by providing specialized AI instructions for different workflows. They modify the AI's grouping strategies, naming conventions, and organizational philosophy.
+
+<Note>
+Personas are injected into the system prompt and override default organization rules.
+</Note>
+
+## Built-In Personas
+
+### General
+
+<Tabs>
+  <Tab title="Overview">
+    **Best for:** Most users, mixed file types, general organization
+    
+    **Strategy:**
+    - Group by file category (Documents, Images, Audio, Video, Archives)
+    - Sub-group by specific type or context
+    - Date-based organization for time-sensitive files
+    - Context clustering for related files
+  </Tab>
+  
+  <Tab title="Example Output">
+    ```
+    Documents/
+    ├── Invoices/
+    ├── Contracts/
+    └── Reports/
+    Images/
+    ├── Screenshots/
+    └── Photos/
+        └── 2026-01/
+    Archives/
+    ├── Installers/
+    └── Old Projects/
+    ```
+  </Tab>
+  
+  <Tab title="System Prompt">
+    ```markdown
+    ## General Organization Strategy:
+    - **Primary grouping**: By file category (e.g., Documents, Images, Audio, Video, Archives)
+    - **Sub-grouping**: By specific type or context (e.g., Documents/Invoices, Images/Screenshots)
+    - **Date-based organization**: For time-sensitive files (e.g. photos, logs, receipts), group by Year/Month.
+    - **Context clustering**: Group related files together (e.g. a project proposal and its assets).
+    - **Clean up**: Move temporary files (installers, dmg, zip) to a specific 'Installers' or 'Archives' folder.
+    
+    Aim for a clean, intuitive structure that anybody could understand.
+    ```
+  </Tab>
+</Tabs>
+
+### Developer
+
+<Tabs>
+  <Tab title="Overview">
+    **Best for:** Software developers, programmers, technical projects
+    
+    **Strategy:**
+    - Group by programming language or technology stack
+    - Detect projects via `package.json`, `Cargo.toml`, `go.mod`, `.xcodeproj`
+    - Organize by `src/`, `lib/`, `tests/`, `docs/`, `config/`
+    - Recognize build artifacts (`node_modules/`, `target/`, `build/`)
+  </Tab>
+  
+  <Tab title="Example Output">
+    ```
+    Projects/
+    ├── MyApp/
+    │   ├── src/
+    │   ├── tests/
+    │   ├── package.json
+    │   └── README.md
+    ├── CLI-Tool/
+    └── Website/
+    Scripts/
+    ├── Python/
+    ├── Shell/
+    └── JavaScript/
+    Documentation/
+    Config/
+    Archives/
+    ```
+  </Tab>
+  
+  <Tab title="Project Detection">
+    Automatically identifies projects by looking for:
+    
+    | File | Framework |
+    |------|----------|
+    | `package.json` | Node.js/npm |
+    | `Cargo.toml` | Rust |
+    | `go.mod` | Go |
+    | `*.xcodeproj` | iOS/macOS |
+    | `Makefile` | C/C++ |
+    | `requirements.txt` | Python |
+    | `.sln` | .NET/C# |
+    | `build.gradle` | Java/Android |
+    
+    <Note>
+    Paired files are kept together: `report.tex` + `report.bib`
+    </Note>
+  </Tab>
+  
+  <Tab title="System Prompt">
+    ```markdown
+    ## Developer Mode Specialization:
+    - **Primary grouping**: By programming language or technology stack
+    - **Project detection**: Look for package.json, Cargo.toml, go.mod, *.xcodeproj, etc.
+    - **Source organization**: Group by src/, lib/, tests/, docs/, config/
+    - **Recognize build artifacts**: node_modules/, target/, build/, dist/, .cache/
+    - **Version control**: Keep .git related files together
+    - **Configuration**: Group dotfiles and config files
+    - **Dependencies**: Separate vendor/third-party code
+    
+    Preferred folder structure:
+    - Projects/[ProjectName]/
+    - Scripts/[Language]/
+    - Documentation/
+    - Config/
+    - Archives/
+    ```
+  </Tab>
+</Tabs>
+
+### Photographer
+
+<Tabs>
+  <Tab title="Overview">
+    **Best for:** Photographers, photo enthusiasts, visual artists
+    
+    **Strategy:**
+    - Group by date (Year/Month or Year/Event)
+    - Extract EXIF data (camera model, date taken, GPS location)
+    - Detect events (photos taken same day/location)
+    - Separate RAW files from JPEGs
+    - Identify edited files ("_edit", "_final", "-2" suffixes)
+  </Tab>
+  
+  <Tab title="Example Output">
+    ```
+    Photos/
+    ├── 2026/
+    │   ├── 01-January/
+    │   ├── 02-February/
+    │   └── Wedding-June/
+    RAW/
+    ├── 2026-01/
+    Edited/
+    ├── Portfolio/
+    └── Client-Work/
+    Screenshots/
+    Videos/
+    └── 2026/
+    ```
+  </Tab>
+  
+  <Tab title="EXIF Metadata">
+    When Deep Scan is enabled, Sorty extracts:
+    
+    - **Date Taken**: Original capture timestamp
+    - **Camera Model**: Canon EOS R5, iPhone 15 Pro, etc.
+    - **GPS Location**: Latitude/longitude for location-based grouping
+    - **Lens Info**: Focal length, aperture
+    - **Image Dimensions**: For resolution-based sorting
+    
+    <Tip>
+    Use Vision mode to analyze image content for scene-based organization.
+    </Tip>
+  </Tab>
+  
+  <Tab title="System Prompt">
+    ```markdown
+    ## Photographer Mode Specialization:
+    - **Primary grouping**: By date (Year/Month or Year/Event)
+    - **Use EXIF data**: Extract camera model, date taken, GPS location
+    - **Event detection**: Group photos taken on same day/location
+    - **Camera organization**: Optionally sub-group by camera/device
+    - **RAW vs Processed**: Separate RAW files from JPEGs
+    - **Edited files**: Detect "_edit", "_final", "-2" suffixes
+    
+    Preferred folder structure:
+    - Photos/[Year]/[Month] or Photos/[Year]/[Event]/
+    - RAW/
+    - Edited/
+    - Screenshots/
+    - Videos/
+    
+    Pay special attention to EXIF metadata if available.
+    ```
+  </Tab>
+</Tabs>
+
+### Office
+
+<Tabs>
+  <Tab title="Overview">
+    **Best for:** Business professionals, office work, client management
+    
+    **Strategy:**
+    - Group by client or project name
+    - Organize by document type (Contracts, Invoices, Reports, Proposals)
+    - Date-based subfolders (Year/Quarter)
+    - Detect client names in filenames
+    - Track versions (v1, v2, draft, final)
+  </Tab>
+  
+  <Tab title="Example Output">
+    ```
+    Clients/
+    ├── Acme-Corp/
+    │   ├── 2026/
+    │   │   ├── Contracts/
+    │   │   ├── Invoices/
+    │   │   └── Reports/
+    ├── GlobalTech/
+    Projects/
+    ├── Website-Redesign/
+    └── Q1-Campaign/
+    Finance/
+    ├── Invoices/
+    └── Receipts/
+    Legal/
+    └── Contracts/
+    Templates/
+    Archives/
+    ```
+  </Tab>
+  
+  <Tab title="Client Detection">
+    Automatically identifies client patterns:
+    
+    - Company names in filenames: `acme_contract.pdf`
+    - Invoice numbers: `INV-2026-001.xlsx`
+    - Project codes: `PRJ-123-proposal.docx`
+    - Version tracking: `contract_v1.pdf`, `contract_v2_final.pdf`
+  </Tab>
+  
+  <Tab title="System Prompt">
+    ```markdown
+    ## Office Mode Specialization:
+    - **Primary grouping**: By client or project name
+    - **Document types**: Contracts, Invoices, Reports, Proposals, Correspondence
+    - **Date-based subfolders**: Year/Quarter for time-sensitive documents
+    - **Client detection**: Look for company names in filenames
+    - **Version tracking**: Keep v1, v2, draft, final together
+    
+    Preferred folder structure:
+    - Clients/[ClientName]/[Year]/
+    - Projects/[ProjectName]/
+    - Templates/
+    - Archives/[Year]/
+    - Finance/Invoices/, Finance/Receipts/
+    - Legal/Contracts/
+    
+    Look for invoice numbers, client names, and project codes in filenames.
+    ```
+  </Tab>
+</Tabs>
+
+## Custom Personas
+
+Create your own personas for specialized workflows:
+
+### Creating a Custom Persona
+
+<Steps>
+  <Step title="Generate with AI">
+    Navigate to **Settings → Personas → Generate**
+    
+    Describe your workflow:
+    ```
+    "I organize scientific research papers by topic and author."
+    ```
+    
+    Sorty will generate a custom persona with appropriate organization rules.
+  </Step>
+  
+  <Step title="Manual Creation">
+    Navigate to **Settings → Personas → Create**
+    
+    - **Name**: Research Papers
+    - **Icon**: book
+    - **Description**: Organize academic papers by topic and author
+    - **System Prompt**: Write your custom organization rules
+  </Step>
+  
+  <Step title="Test & Refine">
+    Use the persona on a test directory and refine the prompt based on results.
+  </Step>
+</Steps>
+
+### Example Custom Personas
+
+<AccordionGroup>
+  <Accordion title="Music Producer">
+    ```markdown
+    ## Music Producer Specialization:
+    - **Primary grouping**: By project/song name
+    - **Subfolders**: Stems, Samples, Mixdowns, Masters
+    - **File types**: WAV, MP3, FLAC, MIDI, project files (.als, .flp, .logic)
+    - **Version tracking**: v1, v2, mix1, master_final
+    - **Sample organization**: By instrument type or pack name
+    
+    Preferred structure:
+    - Projects/[SongName]/Stems/, Mixdowns/, Masters/
+    - Samples/Drums/, Samples/Synths/, Samples/Vocals/
+    - Templates/
+    - Archives/
+    ```
+  </Accordion>
+  
+  <Accordion title="Student">
+    ```markdown
+    ## Student Specialization:
+    - **Primary grouping**: By subject or course
+    - **Subfolders**: Lectures, Assignments, Exams, Notes
+    - **Date organization**: By semester or academic year
+    - **Project detection**: Group related assignment files
+    
+    Preferred structure:
+    - Courses/[Subject]/Lectures/, Assignments/, Exams/
+    - Projects/[ProjectName]/
+    - Resources/Textbooks/, References/
+    - Personal/Notes/
+    ```
+  </Accordion>
+  
+  <Accordion title="Content Creator">
+    ```markdown
+    ## Content Creator Specialization:
+    - **Primary grouping**: By platform or content series
+    - **Subfolders**: Raw Footage, Edited, Thumbnails, Scripts
+    - **Date organization**: By upload date or filming date
+    - **Project detection**: Group video project files with assets
+    
+    Preferred structure:
+    - YouTube/[Series]/Episodes/, Shorts/
+    - Instagram/Reels/, Posts/, Stories/
+    - TikTok/
+    - Assets/B-Roll/, Music/, Graphics/
+    - Archives/Published/
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Persona Manager
+
+Personas are managed by the `PersonaManager` class:
+
+```swift
+@MainActor
+public class PersonaManager: ObservableObject {
+    @Published public var selectedPersona: PersonaType = .general
+    @Published public var selectedCustomPersonaId: String?
+    @Published public var customPrompts: [PersonaType: String] = [:]
+    
+    public func selectPersona(_ persona: PersonaType) {
+        selectedPersona = persona
+        selectedCustomPersonaId = nil
+        savePersona()
+    }
+    
+    public func selectCustomPersona(_ id: String) {
+        selectedCustomPersonaId = id
+        saveCustomPersonaId()
+    }
+    
+    public func getEffectivePrompt(customStore: CustomPersonaStore) -> String {
+        if let customId = selectedCustomPersonaId,
+           let custom = customStore.customPersonas.first(where: { $0.id == customId }) {
+            return custom.promptModifier
+        }
+        return getPrompt(for: selectedPersona)
+    }
+}
+```
+
+## Customizing Built-In Personas
+
+You can override built-in persona prompts:
+
+<Steps>
+  <Step title="Navigate to Advanced Settings">
+    **Settings → Advanced → Persona Customization**
+  </Step>
+  
+  <Step title="Select Persona">
+    Choose the persona to customize (e.g., Developer)
+  </Step>
+  
+  <Step title="Edit System Prompt">
+    Modify the prompt to suit your needs:
+    
+    ```markdown
+    ## Developer Mode (Custom):
+    - Group by monorepo structure
+    - Separate frontend from backend
+    - Keep Docker configs together
+    - Organize by microservice
+    ```
+  </Step>
+  
+  <Step title="Reset if Needed">
+    Click **Reset to Default** to restore the original prompt
+  </Step>
+</Steps>
+
+<Note>
+Custom prompts persist per-persona and are stored in `UserDefaults`.
+</Note>
+
+## Persona Selection in CLI
+
+Use personas from the command line:
+
+```bash
+# Organize with Developer persona
+sorty organize ~/Code --persona developer
+
+# Organize with Photographer persona
+sorty organize ~/Photos --persona photographer
+
+# Organize with custom persona
+sorty organize ~/Research --persona custom:research-papers
+```
+
+## Persona-Specific Learnings
+
+The Learnings system can track preferences per-persona:
+
+```swift
+// Learnings context includes persona info
+if let learnedContext = learningsManager?.generatePromptContext(forFolder: folderPath) {
+    instructions += "\n\n" + learnedContext
+}
+```
+
+<Tip>
+The same correction in Developer mode vs. Photographer mode is treated differently by the learning system.
+</Tip>
+
+## How Personas Affect Organization
+
+### Priority Rules
+
+1. **User Custom Instructions** (highest priority)
+2. **Persona-Specific Prompt**
+3. **Learned Preferences**
+4. **System Defaults**
+
+### Example Comparison
+
+<Tabs>
+  <Tab title="General Persona">
+    **Input Files:**
+    ```
+    main.py
+    utils.py
+    data.csv
+    results.png
+    ```
+    
+    **Output:**
+    ```
+    Code/
+    ├── main.py
+    └── utils.py
+    Data/
+    └── data.csv
+    Images/
+    └── results.png
+    ```
+  </Tab>
+  
+  <Tab title="Developer Persona">
+    **Input Files:**
+    ```
+    main.py
+    utils.py
+    data.csv
+    results.png
+    ```
+    
+    **Output:**
+    ```
+    Data-Analysis-Project/
+    ├── src/
+    │   ├── main.py
+    │   └── utils.py
+    ├── data/
+    │   └── data.csv
+    └── output/
+        └── results.png
+    ```
+    
+    <Note>
+    Developer persona recognizes this as a Python project and keeps related files together.
+    </Note>
+  </Tab>
+</Tabs>
+
+## Persona Chat (Experimental)
+
+Interact with your persona via chat to refine organization:
+
+```swift
+// Persona chat allows iterative refinement
+personaChat.ask("How should I organize client contracts?")
+// Response: "I recommend Clients/[Name]/Contracts/[Year]/"
+```
+
+<Warning>
+This feature is experimental and may not be available in all versions.
+</Warning>
+
+## Related Features
+
+<CardGroup cols={2}>
+  <Card title="The Learnings" icon="brain" href="/features/the-learnings">
+    Train the AI on your organization preferences
+  </Card>
+  
+  <Card title="File Organization" icon="folder-tree" href="/features/file-organization">
+    Learn how AI organization works
+  </Card>
+  
+  <Card title="AI Providers" icon="robot" href="/features/ai-providers">
+    Configure your AI backend
+  </Card>
+</CardGroup>

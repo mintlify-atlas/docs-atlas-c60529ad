@@ -1,0 +1,556 @@
+---
+title: The Learnings
+description: Passive learning system that trains on your organization habits to improve AI suggestions over time
+---
+
+## What is The Learnings?
+
+**The Learnings** is a passive learning system that observes your organization behavior, corrections, and feedback to continuously improve AI suggestions. It builds a personalized understanding of how you prefer to organize files.
+
+<Note>
+All learning data is **encrypted with AES-256**, stored **locally only**, and protected by **Touch ID/Face ID**.
+</Note>
+
+## How It Works
+
+<Steps>
+  <Step title="Observe">
+    Sorty passively tracks your organization behavior:
+    - Manual corrections (files you move after AI organization)
+    - Rejected sessions (organizations you cancel or revert)
+    - Custom instructions you provide
+    - Steering prompts (post-organization feedback)
+  </Step>
+  
+  <Step title="Analyze">
+    The system analyzes patterns:
+    - Which folder placements you accept vs. reject
+    - Temporal weighting (recent behavior > old behavior)
+    - Rule induction (deriving explicit rules from patterns)
+    - Context-aware preferences (different rules for different file types)
+  </Step>
+  
+  <Step title="Apply">
+    Learned preferences are injected into future AI prompts:
+    - High-priority rules influence organization
+    - Rejection patterns prevent repeated mistakes
+    - Honing answers define your philosophy
+    - Confidence scoring ensures safe application
+  </Step>
+</Steps>
+
+## Learning Sources
+
+The system learns from multiple behavior types:
+
+| Behavior | What's Captured | Priority | Example |
+|----------|-----------------|----------|----------|
+| **Steering Prompts** | Post-organization feedback | **Highest** | "Keep all client files together" |
+| **Honing Answers** | Explicit preferences from Q&A | **High** | "Archive files after 6 months" |
+| **Guiding Instructions** | Pre-organization instructions | **High** | "Group by client, then by year" |
+| **Manual Corrections** | Files moved after AI org | **Medium** | Moving invoice.pdf from Docs/ to Finance/ |
+| **Reverts** | Cancelled organizations | **Medium** | Cancelling a 20-folder structure |
+| **Additional Instructions** | Custom org instructions | **Medium** | "Use snake_case for folders" |
+
+## Initial Setup
+
+<Steps>
+  <Step title="Grant Consent">
+    Navigate to **The Learnings** (⇧⌘L) and click **Grant Consent**.
+    
+    You'll be asked to agree to data collection.
+  </Step>
+  
+  <Step title="Set Up Authentication">
+    Configure **Touch ID / Face ID / Passcode** protection.
+    
+    <Warning>
+    After initial setup, you'll need to authenticate each time you access The Learnings dashboard.
+    </Warning>
+  </Step>
+  
+  <Step title="Start Organizing">
+    Use Sorty normally. The system will passively observe and learn.
+  </Step>
+  
+  <Step title="Refine with Honing (Optional)">
+    Periodically run **Honing Sessions** to explicitly define your preferences.
+  </Step>
+</Steps>
+
+## The Learnings Dashboard
+
+<Tabs>
+  <Tab title="Overview">
+    Quick stats and learning progress:
+    
+    - **Total Corrections**: 47
+    - **Honing Answers**: 12
+    - **Inferred Rules**: 8
+    - **Success Rate**: 94%
+    - **Last Updated**: 2 hours ago
+    
+    Action buttons:
+    - 🧠 **Refine Preferences** (start honing)
+    - 📤 **Export Profile**
+    - 🚫 **Pause Learning**
+    - 🗑️ **Delete All Data**
+  </Tab>
+  
+  <Tab title="Preferences">
+    Grouped view of learned preferences:
+    
+    **Honing Answers:**
+    - When archiving, move to `Archives/[Year]/`
+    - Keep projects intact, don't split by file type
+    - Use lowercase folder names with hyphens
+    
+    **Inferred Rules:**
+    - `.pdf` invoices → `Finance/Invoices/`
+    - `.jpg` screenshots → `Screenshots/[Year]/`
+    - Client files → `Clients/[Name]/`
+    
+    **Recent Feedback:**
+    - "Don't put images in Archives"
+    - "Keep design files in one folder"
+  </Tab>
+  
+  <Tab title="Activity">
+    Timeline of corrections and reverts:
+    
+    ```
+    2 hours ago: Moved invoice.pdf
+      From: Documents/
+      To:   Finance/Invoices/
+    
+    1 day ago: Cancelled organization
+      Reason: Too many folders (15)
+    
+    3 days ago: Instruction added
+      "Group by client name"
+    ```
+    
+    Each entry is expandable for details.
+  </Tab>
+</Tabs>
+
+## Honing Sessions
+
+Honing is an interactive Q&A process to explicitly define your preferences:
+
+<Steps>
+  <Step title="Trigger Honing">
+    Click **Refine Preferences** or use ⌥⌘H.
+    
+    <Note>
+    Honing is also offered automatically after completing an organization.
+    </Note>
+  </Step>
+  
+  <Step title="Answer Questions">
+    The AI generates 3-5 questions based on your recent activity:
+    
+    **Example Questions:**
+    - "When you finish a project, what is your preferred archival strategy?"
+    - "How do you prefer to organize documents by date?"
+    - "Should design files be grouped by project or by file type?"
+  </Step>
+  
+  <Step title="Provide Answers">
+    Your answers become **high-priority preferences**:
+    
+    ```
+    Q: "When archiving old files, where should they go?"
+    A: "Move to Archives/[Year]/ and keep folder structure intact."
+    ```
+  </Step>
+  
+  <Step title="Apply to Future Organizations">
+    These preferences are injected into the AI prompt with high weight.
+  </Step>
+</Steps>
+
+## Prompt Context Generation
+
+The Learnings system generates an XML context block for the AI:
+
+```xml
+<learnings_context>
+  <preamble>
+    <instruction>IMPORTANT: The following learnings represent this user's 
+    organization preferences, corrections, and patterns. Pay close attention 
+    to rejection patterns and corrections - these indicate what NOT to do.</instruction>
+    <context folder="Downloads">/Users/me/Downloads</context>
+  </preamble>
+
+  <section id="rejections" priority="CRITICAL">
+    <title>REJECTION PATTERNS</title>
+    <instruction>NEVER use these placements - user explicitly rejected them</instruction>
+    <items>
+      <item weight="90" occurrences="3" recency="2 days ago">
+        DO NOT place .pdf → Archives
+      </item>
+      <item weight="85" occurrences="2" recency="1 week ago">
+        DO NOT place .jpg → Documents
+      </item>
+    </items>
+  </section>
+
+  <section id="preferences" priority="CRITICAL">
+    <title>USER PREFERENCES</title>
+    <instruction>These are explicit user preferences - always follow them</instruction>
+    <items>
+      <item weight="98" recency="3 days ago">
+        Archive files after 6 months to Archives/[Year]/
+      </item>
+      <item weight="95" recency="1 week ago">
+        Keep all client files in Clients/[Name]/ structure
+      </item>
+    </items>
+  </section>
+
+  <section id="corrections" priority="HIGH">
+    <title>PAST CORRECTIONS</title>
+    <instruction>User corrected these placements - avoid repeating the same mistakes</instruction>
+    <items>
+      <item weight="75" occurrences="4" recency="today">
+        .pdf files: prefer 'Finance/Invoices/' over 'Documents/'
+      </item>
+    </items>
+  </section>
+
+  <section id="high_confidence_rules" priority="HIGH">
+    <title>PROVEN PATTERNS</title>
+    <instruction>These patterns have high success rates - follow them unless user instructions conflict. When you apply a pattern, include its rule_id in the folder's JSON.</instruction>
+    <items>
+      <item weight="85" confidence="92%" recency="2 days ago" rule_id="rule-abc-123">
+        .jpg screenshots → Screenshots/[Year]/[Month]/
+      </item>
+    </items>
+  </section>
+</learnings_context>
+```
+
+<Accordion title="Priority Hierarchy">
+  1. **CRITICAL**: Rejections, Explicit Preferences (weight 85-100)
+  2. **HIGH**: Corrections, High-Confidence Rules (weight 70-84)
+  3. **MEDIUM-HIGH**: Recent Feedback (weight 60-69)
+  4. **MEDIUM**: Learned Patterns (weight 40-59)
+  5. **LOW**: General Tendencies (weight 0-39)
+</Accordion>
+
+## Temporal Weighting
+
+Recent behavior is weighted more heavily than old behavior:
+
+```swift
+private func recencyWeight(from date: Date, to now: Date) -> Double {
+    let daysSince = now.timeIntervalSince(date) / 86400
+    if daysSince < 1 { return 1.0 }   // Today: 100%
+    if daysSince < 7 { return 0.8 }   // This week: 80%
+    if daysSince < 30 { return 0.5 }  // This month: 50%
+    if daysSince < 90 { return 0.3 }  // This quarter: 30%
+    return 0.1                         // Older: 10%
+}
+```
+
+<Tip>
+This prevents outdated preferences from affecting current organizations.
+</Tip>
+
+## Rule Attribution
+
+When the AI applies a learned rule, it includes the `rule_id`:
+
+```json
+{
+  "folders": [
+    {
+      "name": "Finance",
+      "rule_id": "rule-invoice-placement-abc123",
+      "files": [...]
+    }
+  ]
+}
+```
+
+This enables:
+- **Feedback loops**: "This rule worked well" or "Don't use this rule again"
+- **Transparency**: See which learned patterns influenced organization
+- **Debugging**: Understand why files were placed where they were
+
+## Security & Privacy
+
+### Encryption
+
+All learning data is encrypted before storage:
+
+```swift
+// AES-256 encryption with Keychain-stored keys
+try LearningsFileManager.save(profile: currentProfile)
+
+// Keys are never accessible outside the security context
+let key = Keychain.load("learnings.encryption.key")
+```
+
+### Authentication
+
+Touch ID / Face ID is required after initial setup:
+
+```swift
+public func unlock() async {
+    await securityManager.authenticateForLearningsAccess()
+    isLocked = !securityManager.isUnlocked
+    if !isLocked {
+        await loadProfile()
+    }
+}
+```
+
+### Session Timeout
+
+Automatic lock after 5 minutes of inactivity:
+
+```swift
+private let sessionTimeout: TimeInterval = 300 // 5 minutes
+```
+
+### Secure Deletion
+
+When you delete learning data, it's securely overwritten:
+
+```swift
+public func clearAllData() async -> Bool {
+    try await consentManager.deleteAllData()
+    try LearningsFileManager.secureDelete() // Overwrites before removal
+    currentProfile = LearningsProfile() // Reset to empty
+    return true
+}
+```
+
+## Data Management
+
+### Pause Learning
+
+Temporarily stop data collection while preserving existing data:
+
+```swift
+public func withdrawConsent() async {
+    consentManager.withdrawConsent()
+    profile.consentGranted = false
+    await saveProfile()
+}
+```
+
+<Note>
+You can resume learning anytime without losing your learned preferences.
+</Note>
+
+### Export Profile
+
+Export your learning profile as JSON:
+
+```bash
+learnings export > my-learnings.json
+```
+
+**Example Export:**
+```json
+{
+  "createdAt": "2026-01-01T00:00:00Z",
+  "honingAnswers": [
+    {
+      "questionId": "q1",
+      "selectedOption": "Archive to Archives/[Year]/"
+    }
+  ],
+  "inferredRules": [
+    {
+      "id": "rule-123",
+      "pattern": ".pdf invoices → Finance/Invoices/",
+      "confidenceLevel": "high",
+      "successRate": 0.94
+    }
+  ],
+  "corrections": [...],
+  "rejections": [...]
+}
+```
+
+### Import Profile
+
+Restore from a previous export:
+
+1. **Settings → Learnings → Import**
+2. Select your `.json` file
+3. Confirm merge or replace
+
+<Warning>
+Importing will overwrite your current learning profile. Export first if needed.
+</Warning>
+
+## Learning Behavior Types
+
+### 1. Manual Corrections
+
+Recorded when you move files after AI organization:
+
+```swift
+public func recordCorrection(originalPath: String, newPath: String) {
+    let example = LabeledExample(
+        srcPath: originalPath,
+        dstPath: newPath,
+        action: .edit
+    )
+    profile.corrections.append(example)
+    debouncedSave()
+}
+```
+
+### 2. Steering Prompts
+
+Post-organization feedback:
+
+```swift
+public func recordSteeringPrompt(
+    _ prompt: String,
+    folderPath: String?,
+    sessionId: String?
+) {
+    let steeringPrompt = SteeringPrompt(
+        prompt: prompt,
+        folderPath: folderPath,
+        sessionId: sessionId
+    )
+    profile.steeringPrompts.append(steeringPrompt)
+}
+```
+
+### 3. Cancelled Organizations
+
+Records rich context when you cancel:
+
+```swift
+public func recordCancelledOrganization(
+    folderPath: String,
+    fileCount: Int,
+    proposedFolderCount: Int,
+    instructions: String?,
+    stage: String,
+    proposedFolderNames: [String]?,
+    regenerationCount: Int
+) {
+    let cancelled = CancelledOrganization(...)
+    profile.cancelledOrganizations.append(cancelled)
+}
+```
+
+<Tip>
+The system learns **why** you cancelled: too many folders, wrong structure, etc.
+</Tip>
+
+### 4. History Reverts
+
+Records when you undo an organization:
+
+```swift
+public func recordHistoryRevert(
+    entryId: String,
+    operationCount: Int,
+    folderPath: String?,
+    revertReason: String?
+) {
+    let event = RevertEvent(...)
+    profile.historyReverts.append(event)
+}
+```
+
+## Auto-Inference
+
+The system can automatically infer rules from patterns:
+
+```swift
+private func checkAndTriggerAutoInference() async {
+    // After 5+ corrections, try to infer a rule
+    if profile.corrections.count >= 5 {
+        await analyzer.inferRules(from: profile)
+    }
+}
+```
+
+<Accordion title="Inference Example">
+  **Observations:**
+  - User moved `invoice_jan.pdf` from `Documents/` to `Finance/Invoices/`
+  - User moved `invoice_feb.pdf` from `Documents/` to `Finance/Invoices/`
+  - User moved `receipt_jan.pdf` from `Documents/` to `Finance/Receipts/`
+  
+  **Inferred Rule:**
+  ```
+  Pattern: Files matching "invoice_*.pdf"
+  Destination: Finance/Invoices/
+  Confidence: High (100% success rate)
+  ```
+</Accordion>
+
+## CLI Commands
+
+### Learnings CLI
+
+Manage your learning profile from the terminal:
+
+```bash
+# Show learning status
+learnings status
+
+# Show detailed statistics
+learnings stats
+
+# Export profile data
+learnings export > my-profile.json
+
+# Delete all learning data
+learnings clear
+
+# Pause learning
+learnings withdraw
+
+# Show system information
+learnings info
+```
+
+### Sorty CLI Integration
+
+```bash
+# Open Learnings dashboard
+sorty learnings
+
+# Start honing session
+sorty learnings --honing
+
+# View stats
+sorty learnings --stats
+```
+
+## Deeplinks
+
+| Deeplink | Description |
+|----------|-------------|
+| `sorty://learnings` | Open Learnings dashboard |
+| `sorty://learnings?action=honing` | Start a honing session |
+| `sorty://learnings?action=stats` | View learning statistics |
+
+## Related Features
+
+<CardGroup cols={2}>
+  <Card title="File Organization" icon="folder-tree" href="/features/file-organization">
+    Learn how AI organization works
+  </Card>
+  
+  <Card title="Personas" icon="user-group" href="/features/personas">
+    Customize organization behavior
+  </Card>
+  
+  <Card title="Workspace Health" icon="heart-pulse" href="/features/workspace-health">
+    Monitor directory health and clutter
+  </Card>
+</CardGroup>

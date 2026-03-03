@@ -1,0 +1,445 @@
+---
+title: Finder Integration
+description: Right-click organization directly from Finder using the Sorty extension
+icon: folder
+---
+
+The Sorty Finder Extension adds a powerful context menu item to macOS Finder, allowing you to organize any folder with a simple right-click.
+
+## Overview
+
+The Finder Extension provides:
+- Right-click "Organize with AI..." menu item in Finder
+- Direct folder organization from context menu
+- Seamless integration with Sorty's organization workflow
+- Quick access without switching to the Sorty app
+
+<Note>
+The Finder extension is **disabled by default** via a feature flag. You must build and enable it manually.
+</Note>
+
+## Prerequisites
+
+Before setting up the Finder extension:
+
+1. **macOS 15.1 or later** - Required for extension support
+2. **Xcode 16.0 or later** - Needed to build the extension
+3. **Sorty.app installed** - Main app must be in `/Applications`
+4. **App Groups configured** - Required for inter-process communication
+
+## Installation
+
+### Step 1: Build the Extension
+
+The Finder extension must be built from source:
+
+**Using Xcode:**
+
+1. Open `Sorty.xcodeproj` in Xcode
+2. Select the **SortyExtension** scheme from the scheme picker
+3. Select your Mac as the destination
+4. Press `⌘B` to build the extension
+5. Press `⌘R` to run (this will help with initial setup)
+
+**Using Command Line:**
+
+```bash
+cd /path/to/Sorty
+xcodebuild -project Sorty.xcodeproj -scheme SortyExtension -configuration Debug build
+```
+
+### Step 2: Configure App Groups
+
+The extension requires **App Groups** to communicate with the main app:
+
+1. Open the project in Xcode
+2. Select the **Sorty** target
+3. Go to **Signing & Capabilities** tab
+4. Add **App Groups** capability if not present
+5. Enable the group: `group.com.sorty.app`
+6. Repeat for the **SortyExtension** target
+
+<Warning>
+Both the main app and extension must use the **same** App Group identifier: `group.com.sorty.app`
+</Warning>
+
+### Step 3: Enable in System Settings
+
+After building the extension:
+
+1. Open **System Settings** (or System Preferences on older macOS)
+2. Navigate to **Privacy & Security**
+3. Click **Extensions** in the sidebar
+4. Find and click **Finder Extensions**
+5. Enable **SortyExtension** by toggling the checkbox
+
+<Frame>
+  <img src="/images/finder-extension-enable.png" alt="Enable Finder Extension in System Settings" />
+</Frame>
+
+### Step 4: Restart Finder
+
+Restart Finder to activate the extension:
+
+```bash
+killall Finder
+```
+
+Or hold `Option` and right-click the Finder icon in the Dock, then select **Relaunch**.
+
+## Usage
+
+### Basic Organization
+
+1. Navigate to any folder in Finder
+2. Right-click (or Control+click) on the folder
+3. Select **Organize with AI...** from the context menu
+4. Sorty will launch and load the selected folder
+5. Review and apply the organization as usual
+
+### Supported Locations
+
+The extension works with:
+- Local folders on your Mac
+- External drives and volumes
+- Network locations (if accessible)
+- iCloud Drive folders
+- User directories (Documents, Downloads, Desktop, etc.)
+
+### Multiple Selection
+
+<Note>
+The extension currently supports **single folder selection only**. If multiple items are selected, only the first folder will be organized.
+</Note>
+
+## How It Works
+
+### Extension Architecture
+
+The Finder extension operates through this workflow:
+
+1. **User selects folder** → Right-clicks in Finder
+2. **Extension activated** → Menu item appears
+3. **Folder path captured** → Selected folder path is stored
+4. **Deeplink generated** → Extension creates `sorty://organize?path=...`
+5. **Main app launched** → Sorty.app opens via URL scheme
+6. **Organization begins** → Folder is loaded and ready to organize
+
+### Communication Flow
+
+```
+Finder → SortyExtension → App Group → Sorty.app → Organization View
+```
+
+The extension uses:
+- **NSExtensionContext** - To receive selected items from Finder
+- **App Groups** - For shared data container
+- **URL Schemes** - To launch and communicate with main app
+- **Security-scoped bookmarks** - To maintain folder access
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Extension doesn't appear in Finder">
+    **Possible causes:**
+    - Extension not built or installed
+    - Extension not enabled in System Settings
+    - Finder hasn't been restarted
+    
+    **Solutions:**
+    1. Rebuild the **SortyExtension** target in Xcode
+    2. Check System Settings → Privacy & Security → Extensions → Finder Extensions
+    3. Restart Finder: `killall Finder`
+    4. Log out and log back in to refresh system extensions
+  </Accordion>
+
+  <Accordion title="Menu item appears but nothing happens">
+    **Possible causes:**
+    - Main app not installed in `/Applications`
+    - App Groups not configured correctly
+    - URL scheme not registered
+    
+    **Solutions:**
+    1. Ensure Sorty.app is in `/Applications` folder
+    2. Verify both app and extension have `group.com.sorty.app` enabled
+    3. Check Console.app for error messages (filter by "Sorty")
+    4. Rebuild both the main app and extension
+  </Accordion>
+
+  <Accordion title="Permission denied errors">
+    **Possible causes:**
+    - Security-scoped bookmark issues
+    - App Sandbox restrictions
+    - Folder access permissions
+    
+    **Solutions:**
+    1. Grant Full Disk Access to Sorty in System Settings
+    2. Try organizing a folder in `~/Documents` first (test case)
+    3. Check folder permissions with `ls -la`
+    4. Remove and re-add the extension in System Settings
+  </Accordion>
+
+  <Accordion title="Extension shows for files instead of folders">
+    This is expected behavior. The extension should only activate for folders, but macOS may show it for all items in some cases. The extension will gracefully handle non-folder selections by doing nothing.
+  </Accordion>
+
+  <Accordion title="App Groups configuration error">
+    **Error message:** "App Groups not configured" or "Container not found"
+    
+    **Solutions:**
+    1. Open Xcode and select the **Sorty** target
+    2. Go to **Signing & Capabilities**
+    3. Ensure **App Groups** capability is present
+    4. Enable `group.com.sorty.app`
+    5. Repeat for **SortyExtension** target
+    6. Clean build folder (`⌘⇧K`) and rebuild
+  </Accordion>
+</AccordionGroup>
+
+## Security Considerations
+
+### App Sandbox
+
+The Finder extension runs in an App Sandbox with restricted permissions:
+
+- Can only access folders explicitly selected by the user
+- Uses security-scoped bookmarks for persistent access
+- Cannot access system directories without Full Disk Access
+- Requires user grant for each new folder location
+
+### Data Privacy
+
+The extension:
+- Does **not** upload any file data
+- Only sends folder paths to the main app
+- Uses App Groups for secure inter-process communication
+- Stores minimal metadata (folder path, timestamp)
+
+### Permissions Required
+
+For full functionality, grant these permissions:
+
+| Permission | Required For | How to Grant |
+|------------|--------------|-------------|
+| **Finder Extension** | Context menu item | System Settings → Extensions → Finder |
+| **File Access** | Reading folder contents | Automatic on folder selection |
+| **Full Disk Access** | System folders | System Settings → Privacy & Security → Full Disk Access |
+| **App Groups** | Extension ↔ App communication | Configured in Xcode signing |
+
+## Advanced Configuration
+
+### Custom Extension Behavior
+
+Modify the extension's behavior by editing:
+
+```
+Sources/SortyExtension/FinderSync.swift
+```
+
+Key areas to customize:
+
+**Menu Item Text:**
+```swift
+let menuItem = NSMenuItem(
+    title: "Organize with AI...",  // Change this
+    action: #selector(organizeFolder(_:)),
+    keyEquivalent: ""
+)
+```
+
+**Auto-start Behavior:**
+```swift
+// Add &autostart=true to URL to skip preview
+let url = URL(string: "sorty://organize?path=\(encodedPath)&autostart=true")!
+```
+
+**Custom Personas:**
+```swift
+// Force a specific persona
+let url = URL(string: "sorty://organize?path=\(encodedPath)&persona=developer")!
+```
+
+### Building for Distribution
+
+To distribute the extension with your app:
+
+1. **Code sign** both app and extension with the same certificate
+2. **Embed** the extension in the app bundle
+3. **Notarize** the complete app (requires Apple Developer account)
+4. **Distribute** as a `.dmg` or via App Store
+
+<Warning>
+Without notarization, users will need to remove quarantine attributes manually:
+```bash
+xattr -cr /Applications/Sorty.app
+```
+</Warning>
+
+### Debugging the Extension
+
+**View extension logs:**
+```bash
+log stream --predicate 'subsystem == "com.sorty.extension"' --level debug
+```
+
+**Check if extension is loaded:**
+```bash
+pluginsuffix -list | grep -i sorty
+```
+
+**Force reload extensions:**
+```bash
+pluginsuffix -remove com.sorty.extension
+killall Finder
+```
+
+**Debug in Xcode:**
+1. Select **SortyExtension** scheme
+2. Run with `⌘R`
+3. Xcode will attach to Finder process
+4. Set breakpoints in `FinderSync.swift`
+5. Trigger extension in Finder
+
+## Feature Flag Control
+
+The Finder extension is controlled by a feature flag:
+
+**Enable extension:**
+```bash
+defaults write com.sorty.app finderExtensionEnabled -bool true
+```
+
+**Disable extension:**
+```bash
+defaults write com.sorty.app finderExtensionEnabled -bool false
+```
+
+**Check current state:**
+```bash
+defaults read com.sorty.app finderExtensionEnabled
+```
+
+<Note>
+Changing the feature flag requires rebuilding the app to take effect.
+</Note>
+
+## Uninstallation
+
+To remove the Finder extension:
+
+1. **Disable in System Settings:**
+   - System Settings → Extensions → Finder Extensions
+   - Uncheck **SortyExtension**
+
+2. **Remove the app:**
+   ```bash
+   rm -rf /Applications/Sorty.app
+   ```
+
+3. **Clean extension cache:**
+   ```bash
+   pluginsuffix -remove com.sorty.extension
+   killall Finder
+   ```
+
+4. **Remove App Group data** (optional):
+   ```bash
+   rm -rf ~/Library/Group\ Containers/group.com.sorty.app
+   ```
+
+## Comparison with CLI
+
+| Feature | Finder Extension | CLI (`sorty`) |
+|---------|-----------------|---------------|
+| **Invocation** | Right-click menu | Terminal command |
+| **Selection** | Visual (Finder) | Path argument |
+| **Automation** | Limited | Full scripting |
+| **Persona** | Default only | Specify any |
+| **Auto-start** | Manual edit | `--auto` flag |
+| **Batch ops** | One at a time | Loop/parallel |
+| **Learning curve** | None | Basic shell |
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Do I need the Finder extension?">
+    No, it's optional. You can always organize folders by:
+    - Using the CLI: `sorty organize /path/to/folder`
+    - Dragging folders onto Sorty.app
+    - Using File → Open Directory in the app
+    - Creating Shortcuts workflows
+    
+    The extension is for convenience if you primarily work in Finder.
+  </Accordion>
+
+  <Accordion title="Can I customize the menu item?">
+    Yes, by editing `FinderSync.swift` and rebuilding the extension. You can change:
+    - Menu item text
+    - Icon (if supported)
+    - Default behavior (auto-start, persona selection)
+  </Accordion>
+
+  <Accordion title="Does it work with network drives?">
+    Yes, as long as the network location is mounted and accessible. However, security-scoped bookmarks may not persist across network disconnections.
+  </Accordion>
+
+  <Accordion title="Can I use it for multiple folders at once?">
+    Currently, no. The extension handles one folder at a time. For batch operations, use the CLI with a shell loop.
+  </Accordion>
+
+  <Accordion title="Why isn't it enabled by default?">
+    The extension requires additional setup (App Groups, system permissions) and adds complexity to the installation. It's designed for power users who want Finder integration.
+  </Accordion>
+</AccordionGroup>
+
+## Technical Details
+
+### Extension Info
+
+| Property | Value |
+|----------|-------|
+| **Bundle ID** | `com.sorty.extension` |
+| **Extension Point** | `com.apple.FinderSync` |
+| **Supported Types** | `public.folder` |
+| **Container** | `group.com.sorty.app` |
+| **Min macOS** | 15.1 |
+
+### File Locations
+
+```
+Sorty.app/
+├── Contents/
+│   ├── MacOS/
+│   │   └── Sorty                    # Main executable
+│   ├── PlugIns/
+│   │   └── SortyExtension.appex/    # Finder extension
+│   └── Info.plist                    # App metadata
+```
+
+Shared data container:
+```
+~/Library/Group Containers/group.com.sorty.app/
+```
+
+### Source Files
+
+- **Extension:** `Sources/SortyExtension/FinderSync.swift`
+- **Main app deeplink handler:** `Sources/SortyLib/Utilities/DeeplinkHandler.swift`
+- **App Groups setup:** Xcode project settings
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="CLI Tools" icon="terminal" href="/automation/cli-tools">
+    Automate Sorty from the command line
+  </Card>
+  <Card title="Deeplinks" icon="link" href="/automation/deeplinks">
+    Build custom workflows with URL schemes
+  </Card>
+</CardGroup>
+
+## Related Documentation
+
+- [Architecture Guide](/developer/architecture) - Understanding Sorty's MVVM structure
+- [Contributing Guide](/developer/contributing) - Development guidelines
+- [AI Providers](/developer/ai-providers) - Adding new AI providers

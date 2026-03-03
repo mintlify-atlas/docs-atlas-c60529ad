@@ -1,0 +1,625 @@
+---
+title: Workspace Health
+description: Monitor directory health, track clutter growth, and identify cleanup opportunities with automated insights
+---
+
+## What is Workspace Health?
+
+**Workspace Health** is an automated monitoring system that analyzes your directories for:
+- Clutter accumulation and growth trends
+- Cleanup opportunities (duplicates, old files, temp files)
+- Empty folders and broken symlinks
+- Large files consuming disk space
+- Unorganized files needing attention
+
+<Note>
+Health analysis runs automatically when you scan a directory, and you can enable continuous monitoring for watched folders.
+</Note>
+
+## Health Score
+
+Sorty calculates an overall health score (0-100) based on:
+
+<CardGroup cols={2}>
+  <Card title="Active Opportunities" icon="sparkles">
+    **Impact: -45 points max**
+    
+    High-priority cleanup opportunities reduce your score.
+  </Card>
+  
+  <Card title="Growth Rate" icon="chart-line">
+    **Impact: -6 points max**
+    
+    Rapid directory growth indicates accumulating clutter.
+  </Card>
+</CardGroup>
+
+```swift
+public var healthScore: Double {
+    var score = 100.0
+
+    let totalImpact = activeOpportunities.reduce(0.0) { $0 + opportunityImpact($1) }
+    score -= min(totalImpact, 45)
+
+    for (path, _) in snapshots {
+        if let growth = getGrowth(for: path, period: .week) {
+            switch growth.growthRate {
+            case .rapid: score -= 6.0
+            case .moderate: score -= 3.0
+            case .slow, .stable: break
+            }
+        }
+    }
+
+    return max(0, min(100, score))
+}
+```
+
+### Score Ranges
+
+| Score | Status | Meaning |
+|-------|--------|----------|
+| **90-100** | 🟢 Excellent | Well-organized, minimal clutter |
+| **70-89** | 🟡 Good | Some cleanup opportunities |
+| **50-69** | 🟠 Fair | Noticeable clutter, action recommended |
+| **30-49** | 🟠 Poor | Significant issues, cleanup needed |
+| **0-29** | 🔴 Critical | Major clutter, immediate action required |
+
+## Directory Snapshots
+
+Sorty takes periodic snapshots of directory state:
+
+```swift
+public struct DirectorySnapshot: Codable {
+    public let directoryPath: String
+    public let timestamp: Date
+    public let totalFiles: Int
+    public let totalSize: Int64
+    public let filesByExtension: [String: Int]
+    public let unorganizedCount: Int
+    public let averageFileAge: TimeInterval
+}
+```
+
+### Snapshot Features
+
+<Tabs>
+  <Tab title="Automatic Capture">
+    Snapshots are taken:
+    - After every organization
+    - When scanning a watched folder
+    - On manual analysis
+    
+    <Note>
+    Up to **52 snapshots** per directory are retained (~1 year of weekly snapshots).
+    </Note>
+  </Tab>
+  
+  <Tab title="Growth Analysis">
+    Compare snapshots over time:
+    
+    ```swift
+    public struct DirectoryGrowth {
+        public let previousSnapshot: DirectorySnapshot
+        public let currentSnapshot: DirectorySnapshot
+        
+        public var fileCountChange: Int
+        public var sizeChange: Int64
+        public var percentageGrowth: Double
+        public var growthRate: GrowthRate
+    }
+    ```
+    
+    **Growth Rates:**
+    - **Stable**: ≤0MB
+    - **Slow**: &lt;100MB
+    - **Moderate**: 100MB-1GB
+    - **Rapid**: &gt;1GB
+  </Tab>
+  
+  <Tab title="Top Growing Types">
+    Identifies which file types are accumulating:
+    
+    ```swift
+    public var topGrowingTypes: [(extension: String, count: Int)] {
+        var changes: [String: Int] = [:]
+        for (ext, count) in currentSnapshot.filesByExtension {
+            let previousCount = previousSnapshot.filesByExtension[ext] ?? 0
+            let change = count - previousCount
+            if change > 0 {
+                changes[ext] = change
+            }
+        }
+        return changes.sorted { $0.value > $1.value }.prefix(5)
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Cleanup Opportunities
+
+The system identifies actionable cleanup opportunities:
+
+### Opportunity Types
+
+<AccordionGroup>
+  <Accordion title="Screenshot Clutter">
+    **Detects:** ≥10 screenshots
+    
+    **Identifies:**
+    - Files matching `Screenshot*.png`
+    - Files with `Screen Shot` pattern
+    - Time-stamped image captures
+    
+    **Quick Action:** Group Screenshots
+    
+    ```swift
+    let screenshots = files.filter { isScreenshot($0) }
+    if screenshots.count >= config.minScreenshotCount {
+        opportunities.append(CleanupOpportunity(
+            type: .screenshotClutter,
+            description: "\(screenshots.count) screenshots detected.",
+            priority: screenshots.count >= 50 ? .high : .medium,
+            action: .groupScreenshots
+        ))
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Download Clutter">
+    **Detects:** Files not accessed in 30+ days
+    
+    **Smart Detection:**
+    - Skips files in active projects (checks for `.git`, `package.json`, etc.)
+    - Uses last access date, falls back to creation date
+    - Configurable threshold
+    
+    **Quick Action:** Archive Old Downloads
+    
+    ```swift
+    let oldDownloads = files.filter { file in
+        guard !isFileInProject(file) else { return false }
+        let relevantDate = file.lastAccessDate ?? file.creationDate
+        guard let date = relevantDate else { return false }
+        let age = now.timeIntervalSince(date)
+        return age > config.downloadClutterThreshold
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Large Files">
+    **Detects:** Files >100MB (configurable)
+    
+    **Smart Detection:**
+    - Skips project files (e.g., inside `.git`, `node_modules`)
+    - Highlights non-active large files
+    
+    **Quick Action:** None (manual review)
+    
+    ```swift
+    let largeFiles = files.filter { file in
+        if isFileInProject(file) { return false }
+        return file.size > config.largeFileSizeThreshold
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Unorganized Files">
+    **Detects:** ≥10 files in root directory
+    
+    **Identifies:**
+    - Files not in subfolders
+    - Excludes hidden files (`.DS_Store`, etc.)
+    
+    **Quick Action:** Organize Root
+    
+    ```swift
+    let rootFiles = files.filter { file in
+        let relativePath = file.path.replacingOccurrences(of: path + "/", with: "")
+        return !relativePath.contains("/") && !file.isDirectory && !file.name.hasPrefix(".")
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Very Old Files">
+    **Detects:** Files not accessed in 1+ year
+    
+    **Smart Detection:**
+    - Skips active project files
+    - Uses last access date when available
+    
+    **Quick Action:** Archive Very Old Files
+    
+    ```swift
+    let veryOldFiles = files.filter { file in
+        if isFileInProject(file) { return false }
+        guard let accessDate = file.lastAccessDate ?? file.modificationDate else { return false }
+        let age = now.timeIntervalSince(accessDate)
+        return age > config.oldFileThreshold // 365 days
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Empty Folders">
+    **Detects:** Directories with no contents
+    
+    **Quick Action:** Prune Empty Folders
+    
+    ```swift
+    private func findEmptyFolders(at path: String) async -> [String] {
+        var emptyFolders: [String] = []
+        let fm = FileManager.default
+        
+        guard let enumerator = fm.enumerator(atPath: path) else { return [] }
+        for case let itemPath as String in enumerator {
+            let fullPath = (path as NSString).appendingPathComponent(itemPath)
+            var isDir: ObjCBool = false
+            if fm.fileExists(atPath: fullPath, isDirectory: &isDir), isDir.boolValue {
+                if let contents = try? fm.contentsOfDirectory(atPath: fullPath), contents.isEmpty {
+                    emptyFolders.append(fullPath)
+                }
+            }
+        }
+        return emptyFolders
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Broken Symlinks">
+    **Detects:** Symbolic links pointing to non-existent files
+    
+    **Quick Action:** Remove Broken Symlinks
+    
+    ```swift
+    private func findBrokenSymlinks(at path: String) async -> [String] {
+        var brokenLinks: [String] = []
+        let fm = FileManager.default
+        
+        guard let enumerator = fm.enumerator(atPath: path) else { return [] }
+        for case let itemPath as String in enumerator {
+            let fullPath = (path as NSString).appendingPathComponent(itemPath)
+            if let destination = try? fm.destinationOfSymbolicLink(atPath: fullPath) {
+                if !fm.fileExists(atPath: destination) {
+                    brokenLinks.append(fullPath)
+                }
+            }
+        }
+        return brokenLinks
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Temp/Cache Files">
+    **Detects:** Temporary and cache files
+    
+    **Patterns:**
+    - `.tmp`, `.cache`, `.log` extensions
+    - `~*` prefix (backup files)
+    - Files in `Cache/`, `Temp/` directories
+    
+    **Quick Action:** None (flagged for review)
+  </Accordion>
+  
+  <Accordion title="Installer Files">
+    **Detects:** `.dmg`, `.pkg`, `.iso` files
+    
+    **Quick Action:** Clean Installers
+    
+    ```swift
+    let installers = files.filter { 
+        ["dmg", "pkg", "iso"].contains($0.extension.lowercased()) 
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Opportunity Priority
+
+Opportunities are prioritized:
+
+```swift
+public enum Priority: Int, Comparable {
+    case low = 0
+    case medium = 1
+    case high = 2
+    case critical = 3
+}
+```
+
+**Priority Calculation:**
+- **Critical**: 50+ unorganized root files
+- **High**: >1GB potential savings, >50 screenshots
+- **Medium**: Most opportunities
+- **Low**: Small impact (&lt;100MB, &lt;10 files)
+
+### Confidence Scoring
+
+Each opportunity includes a confidence level (0-100):
+
+- **100%**: Empty folders, broken symlinks, temp files
+- **95%**: Installers, large files
+- **90%**: Old downloads
+- **85%**: Very old files
+
+<Tip>
+Higher confidence = safer for bulk actions.
+</Tip>
+
+## Smart Project Detection
+
+To avoid false positives, Sorty detects active projects:
+
+```swift
+func isFileInProject(_ file: FileItem) -> Bool {
+    var current = URL(fileURLWithPath: file.path).deletingLastPathComponent()
+    let rootURL = URL(fileURLWithPath: path)
+    
+    while current.path.count >= rootURL.path.count {
+        // Check for project markers
+        let gitPath = current.appendingPathComponent(".git").path
+        let pkgPath = current.appendingPathComponent("package.json").path
+        let swiftPath = current.appendingPathComponent("Package.swift").path
+        
+        if FileManager.default.fileExists(atPath: gitPath) ||
+           FileManager.default.fileExists(atPath: pkgPath) ||
+           FileManager.default.fileExists(atPath: swiftPath) {
+            return true
+        }
+        
+        // Check for .xcodeproj or .xcworkspace
+        if let contents = try? FileManager.default.contentsOfDirectory(atPath: current.path) {
+            for item in contents {
+                if item.hasSuffix(".xcodeproj") || item.hasSuffix(".xcworkspace") {
+                    return true
+                }
+            }
+        }
+        
+        if current.path == rootURL.path { break }
+        current = current.deletingLastPathComponent()
+    }
+    
+    return false
+}
+```
+
+<Note>
+Project files (inside `.git`, `node_modules`, etc.) are excluded from "old files" and "large files" opportunities.
+</Note>
+
+## Quick Actions
+
+One-click cleanup actions:
+
+<Tabs>
+  <Tab title="Archive Old Downloads">
+    Moves files to `Archives/Downloads-[Date]/`
+    
+    ```swift
+    try await archiveOldDownloads(at: path, specificFiles: selectedFiles)
+    ```
+  </Tab>
+  
+  <Tab title="Group Screenshots">
+    Organizes screenshots into `Screenshots/[Year]/[Month]/`
+    
+    ```swift
+    try await groupScreenshots(at: path, specificFiles: selectedFiles)
+    ```
+  </Tab>
+  
+  <Tab title="Clean Installers">
+    Moves installers to `Archives/Installers/` or Trash
+    
+    ```swift
+    try await cleanInstallers(at: path, specificFiles: selectedFiles)
+    ```
+  </Tab>
+  
+  <Tab title="Prune Empty Folders">
+    Recursively removes empty directories
+    
+    ```swift
+    try await pruneEmptyFoldersRecursively(at: path)
+    ```
+  </Tab>
+  
+  <Tab title="Remove Broken Symlinks">
+    Deletes symbolic links pointing to non-existent files
+    
+    ```swift
+    try await removeBrokenSymlinks(at: path, specificFiles: selectedFiles)
+    ```
+  </Tab>
+  
+  <Tab title="Organize Root">
+    Routes to AI organization for unorganized files
+    
+    (Handled by UI routing)
+  </Tab>
+  
+  <Tab title="Archive Very Old Files">
+    Moves inactive files to `Archives/[Year]/`
+    
+    ```swift
+    try await archiveVeryOldFiles(at: path, specificFiles: selectedFiles)
+    ```
+  </Tab>
+</Tabs>
+
+## Cleanup History & Undo
+
+All cleanup actions are tracked:
+
+```swift
+public struct CleanupHistoryItem: Codable {
+    public let date: Date
+    public let actionName: String
+    public let affectedFilePaths: [String]
+    public let type: ActionType // .move, .trash, .delete
+    public let destinationPaths: [String]? // For undo
+}
+```
+
+### Undo Last Action
+
+```swift
+public func undoLastAction() async throws {
+    guard let lastAction = cleanupHistory.last else {
+        throw NSError(..., userInfo: [NSLocalizedDescriptionKey: "No undoable cleanup actions found."])
+    }
+    
+    switch lastAction.type {
+    case .move, .trash:
+        // Reverse the move
+        for (destPath, originalPath) in zip(destinationPaths, affectedFilePaths) {
+            try fileManager.moveItem(at: URL(fileURLWithPath: destPath), 
+                                     to: URL(fileURLWithPath: originalPath))
+        }
+    case .delete:
+        // Cannot undo deletions
+        throw NSError(..., userInfo: [NSLocalizedDescriptionKey: "Deleted files cannot be restored."])
+    }
+    
+    cleanupHistory.removeLast()
+}
+```
+
+<Warning>
+Only `.move` and `.trash` actions can be undone. Deletions are permanent.
+</Warning>
+
+## File Monitoring
+
+Real-time directory monitoring for watched folders:
+
+### Dual Monitoring Strategy
+
+1. **DispatchSource Monitoring** (immediate)
+   ```swift
+   let source = DispatchSource.makeFileSystemObjectSource(
+       fileDescriptor: fd,
+       eventMask: [.write, .delete, .rename, .extend, .attrib],
+       queue: monitorQueue
+   )
+   ```
+
+2. **Polling Backup** (robust)
+   ```swift
+   pollingTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
+       self.checkDirectoryModDate()
+   }
+   ```
+
+<Note>
+Polling ensures changes are detected even if DispatchSource fails (e.g., network drives).
+</Note>
+
+### Change Detection
+
+When a change is detected:
+
+```swift
+private func handleFileEvent() {
+    debounceTask?.cancel()
+    debounceTask = Task {
+        try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second debounce
+        self.fileChangeDetected = Date()
+    }
+}
+```
+
+<Tip>
+1-second debounce prevents excessive re-analysis during bulk operations.
+</Tip>
+
+## Scan Caching
+
+Avoid redundant scans with intelligent caching:
+
+```swift
+private struct ScanCache {
+    let signature: ScanSignature
+    let directoryModDate: Date?
+    let files: [FileItem]
+    let timestamp: Date
+}
+
+private struct ScanSignature {
+    let fileCount: Int
+    let totalSize: Int64
+    let latestModified: Date?
+}
+```
+
+**Cache Validity:**
+- TTL: 30 seconds
+- Invalidated if directory modification date changes
+- Invalidated if signature changes (file count, size, latest mod)
+
+## Configuration
+
+Customize health checks in **Settings → Workspace Health**:
+
+```swift
+public struct WorkspaceHealthConfig: Codable {
+    public var largeFileSizeThreshold: Int64 = 100_000_000 // 100MB
+    public var oldFileThreshold: TimeInterval = 365 * 86400 // 1 year
+    public var downloadClutterThreshold: TimeInterval = 30 * 86400 // 30 days
+    public var minScreenshotCount: Int = 10
+    public var minDownloadCount: Int = 5
+    public var minUnorganizedCount: Int = 10
+    public var minOldFileCount: Int = 10
+    public var enabledChecks: Set<OpportunityType>
+    public var ignoredPaths: [String]
+}
+```
+
+### Ignored Paths
+
+Exclude directories from health analysis:
+
+```swift
+config.ignoredPaths = [
+    "/Users/me/Code/.git",
+    "/Users/me/Projects/node_modules",
+    "/Users/me/Library/Caches"
+]
+```
+
+## Health Insights
+
+Automated insights notify you of important changes:
+
+```swift
+public struct HealthInsight: Codable {
+    public let message: String
+    public let details: String
+    public let type: InsightType
+    public let actionPrompt: String?
+}
+
+public enum InsightType {
+    case growth        // "Downloads grew by 2GB this week"
+    case opportunity   // "Found 50 duplicate files"
+    case milestone     // "Organized 1000 files this month"
+    case suggestion    // "Consider archiving old screenshots"
+    case warning       // "Rapid clutter growth detected"
+}
+```
+
+## Related Features
+
+<CardGroup cols={2}>
+  <Card title="Duplicate Detection" icon="clone" href="/features/duplicate-detection">
+    Find and safely merge duplicate files
+  </Card>
+  
+  <Card title="File Organization" icon="folder-tree" href="/features/file-organization">
+    AI-powered intelligent organization
+  </Card>
+  
+  <Card title="The Learnings" icon="brain" href="/features/the-learnings">
+    Learn from your organization habits
+  </Card>
+</CardGroup>

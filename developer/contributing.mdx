@@ -1,0 +1,533 @@
+---
+title: 'Contributing'
+description: 'Contribution guidelines, PR process, and testing standards for Sorty'
+---
+
+## Welcome
+
+Thank you for your interest in contributing to Sorty. This guide provides comprehensive guidelines for development, testing, and submitting changes.
+
+## Code of Conduct
+
+This project follows our [Code of Conduct](https://github.com/shirishpothi/Sorty/blob/main/CODE_OF_CONDUCT.md). By participating, you agree to uphold these standards.
+
+**Report violations** via [GitHub Discussions](https://github.com/shirishpothi/Sorty/discussions).
+
+## Development Environment
+
+### Prerequisites
+
+- **macOS 15.1** or later
+- **Xcode 16.0** or later (including Swift 6.0)
+- **Git**
+- **Optional**: Ollama for local AI testing
+
+### Initial Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/shirishpothi/Sorty.git
+cd Sorty
+
+# Install dependencies
+swift package resolve
+
+# Build the project
+make build
+
+# Run tests
+make test
+```
+
+### Make Commands
+
+Sorty uses a Makefile for common development tasks:
+
+| Command | Purpose |
+|---------|----------|
+| `make build` | Full build with tests |
+| `make run` | Build and launch app |
+| `make now` | Fast debug build + launch (recommended for dev) |
+| `make dev` | Fastest build (debug, no tests, no launch) |
+| `make test` | Run unit tests |
+| `make test-fast` | Run fast unit tests only |
+| `make quick` | Compile only, skip tests |
+| `make cli` | Build the `learnings` CLI tool |
+| `make install` | Install app to /Applications |
+| `make harness` | Preview harness for rapid UI iteration |
+| `make benchmark` | Measure build times |
+
+<Note>
+  For the full fast development loop guide, see [docs/agent-guides/fast-loop.md](https://github.com/shirishpothi/Sorty/blob/main/docs/agent-guides/fast-loop.md).
+</Note>
+
+## Code Style Guidelines
+
+### Swift Conventions
+
+Follow the [Swift API Design Guidelines](https://swift.org/documentation/api-design-guidelines/):
+
+- Use descriptive names that read well at call sites
+- Prefer methods and properties over free functions
+- Use `lowerCamelCase` for variables, `UpperCamelCase` for types
+- Prefer strong type inference where clear
+
+### Sorty-Specific Conventions
+
+**Manager Classes**:
+
+```swift
+@MainActor
+class SomeManager: ObservableObject {
+    @Published var state: SomeState
+    
+    func performAction() async {
+        // Business logic here
+    }
+}
+```
+
+**AI Client Implementation**:
+
+```swift
+public struct SomeAIClient: AIClientProtocol {
+    public var streamingDelegate: StreamingDelegate?
+    
+    public func analyze(
+        files: [FileItem], 
+        customInstructions: String?, 
+        personaPrompt: String?, 
+        temperature: Double?
+    ) async throws -> OrganizationPlan {
+        // Implementation
+    }
+}
+```
+
+**UI Testing Support**:
+
+```swift
+// Always add accessibility identifiers
+Button("Organize") {
+    // ...
+}
+.accessibilityIdentifier("OrganizeButton")
+```
+
+### Naming Conventions
+
+- **Files**: `PascalCase.swift`
+- **Tests**: `ComponentNameTests.swift`
+- **Views**: Suffix with `View` (e.g., `SettingsView`)
+- **Managers**: Suffix with `Manager` (e.g., `FileSystemManager`)
+- **Protocols**: Describe capability (e.g., `AIClientProtocol`)
+
+## Testing Requirements
+
+### Unit Tests
+
+All new functionality requires unit tests:
+
+```swift
+import XCTest
+@testable import SortyLib
+
+class FeatureNameTests: XCTestCase {
+    func testFeature() {
+        // Arrange
+        let input = ...
+        
+        // Act
+        let result = feature.process(input)
+        
+        // Assert
+        XCTAssertEqual(result.expected, actual)
+    }
+}
+```
+
+### Testing Standards
+
+- Use `MockAIClient` for testing AI-dependent features
+- Create temporary directories in `setUp()`, clean in `tearDown()`
+- Test edge cases (empty inputs, invalid paths, network failures)
+- Use `XCTAssertThrowsError` for error conditions
+
+**Example: Testing with MockAIClient**:
+
+```swift
+func testOrganization() async throws {
+    let organizer = FolderOrganizer()
+    
+    // Create mock AI client
+    let mockClient = MockAIClient(config: .default)
+    organizer.setAIClientForTesting(mockClient)
+    
+    // Test organization
+    try await organizer.organize(directory: testDirectory)
+    
+    XCTAssertEqual(organizer.state, .ready)
+    XCTAssertNotNil(organizer.currentPlan)
+}
+```
+
+### UI Tests
+
+Add `accessibilityIdentifier` to all interactive elements:
+
+```swift
+.accessibilityIdentifier("SettingsSidebarItem")
+.accessibilityIdentifier("PersonaPickerButton")
+.accessibilityIdentifier("OrganizeButton")
+```
+
+Run UI tests:
+
+```bash
+make test-ui
+```
+
+## Pull Request Process
+
+### Before Submitting
+
+<Steps>
+  <Step title="Verify Tests Pass">
+    ```bash
+    make test
+    make test-ui  # If UI changes made
+    ```
+  </Step>
+
+  <Step title="Check Code Style">
+    - No warnings in Xcode
+    - Consistent with existing code
+    - Proper documentation comments for public APIs
+  </Step>
+
+  <Step title="Update Documentation">
+    - Update README.md if user-facing changes
+    - Update HelpView.swift if adding new features
+    - Update AGENTS.md if changing build process
+  </Step>
+</Steps>
+
+### PR Requirements
+
+- **Clear description** of what changed and why
+- **Link to related issues** (e.g., "Fixes #123")
+- **Screenshots** for UI changes
+- **Test results** showing what was verified
+
+**Example PR Description**:
+
+```markdown
+## Summary
+
+Adds support for the XYZ AI provider to expand user choice.
+
+## Changes
+
+- Created `XYZClient.swift` implementing `AIClientProtocol`
+- Added provider configuration to `AIProvider` enum
+- Registered client in `AIClientFactory`
+- Added unit tests for client implementation
+- Updated README with provider setup instructions
+
+## Testing
+
+- ✅ All unit tests pass
+- ✅ Health check works with XYZ API
+- ✅ Successfully organized test folder with 50+ files
+- ✅ Streaming works correctly
+
+## Screenshots
+
+[Include provider selection UI, settings panel]
+
+Fixes #456
+```
+
+### Review Process
+
+1. **Automated CI** runs tests and security checks
+2. **Maintainers review** for code quality and architecture alignment
+3. **Feedback provided** within 48 hours
+4. **Changes may be requested** before approval
+
+## Commit Message Guidelines
+
+Use clear, descriptive commit messages that capture the user-facing impact:
+
+```
+feat: Add support for XYZ AI provider
+
+- Implement XYZClient following AIClientProtocol
+- Add configuration UI for API key and model selection
+- Include unit tests for client implementation
+- Update README with provider setup instructions
+
+This expands user choice for AI backends and enables
+use of XYZ's faster inference speeds.
+
+Fixes #456
+```
+
+### Commit Types
+
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation only
+- `test`: Adding or fixing tests
+- `refactor`: Code change that neither fixes nor adds features
+- `perf`: Performance improvement
+- `chore`: Build process or auxiliary tool changes
+
+## Architecture Patterns
+
+### MVVM + Service Layers
+
+Sorty uses MVVM with dependency injection:
+
+```swift
+// Manager handles business logic
+@MainActor
+class DataManager: ObservableObject {
+    @Published var items: [Item] = []
+    
+    func loadItems() async {
+        // Business logic
+    }
+}
+
+// View uses manager
+struct ItemListView: View {
+    @EnvironmentObject var dataManager: DataManager
+    
+    var body: some View {
+        List(dataManager.items) { item in
+            Text(item.name)
+        }
+        .task {
+            await dataManager.loadItems()
+        }
+    }
+}
+```
+
+See [Architecture Guide](/developer/architecture) for complete details.
+
+### AI Provider System
+
+All AI clients implement `AIClientProtocol` and register in `AIClientFactory`:
+
+```swift
+// 1. Implement protocol
+public struct NewProviderClient: AIClientProtocol {
+    public let config: AIConfig
+    @MainActor public weak var streamingDelegate: StreamingDelegate?
+    
+    public func analyze(files: [FileItem], ...) async throws -> OrganizationPlan {
+        // Implementation
+    }
+}
+
+// 2. Register in factory
+case .newProvider:
+    return NewProviderClient(config: config)
+```
+
+See [Adding AI Providers](/developer/ai-providers) for complete guide.
+
+### State Transitions
+
+Use validated state transitions in managers:
+
+```swift
+public enum State {
+    case idle
+    case loading
+    case loaded
+    case error(Error)
+    
+    static func canTransition(from: State, to: State) -> Bool {
+        // Define valid transitions
+    }
+}
+
+@discardableResult
+public func transition(to newState: State) -> Bool {
+    guard State.canTransition(from: state, to: newState) else {
+        return false
+    }
+    state = newState
+    return true
+}
+```
+
+See `FolderOrganizer.swift:13-147` for complete example.
+
+## Documentation
+
+### Code Documentation
+
+Document public APIs with documentation comments:
+
+```swift
+/// Analyzes files and generates an organization plan
+/// 
+/// - Parameters:
+///   - files: Array of FileItems to analyze
+///   - persona: The persona to use for organization logic
+///   - options: Organization options (deep scan, temperature, etc.)
+/// - Returns: OrganizationPlan containing proposed file operations
+/// - Throws: AIClientError if the analysis fails
+public func analyze(
+    files: [FileItem],
+    customInstructions: String?,
+    personaPrompt: String?,
+    temperature: Double?
+) async throws -> OrganizationPlan
+```
+
+### User-Facing Documentation
+
+When adding features that affect users:
+
+1. Update relevant `HelpView.swift` sections
+2. Add to README.md if significant
+3. Update CHANGELOG.md with user-facing description
+
+## Common Contribution Scenarios
+
+### Adding a New AI Provider
+
+See the complete guide: [Adding AI Providers](/developer/ai-providers)
+
+**Quick checklist**:
+
+- [ ] Add to `AIProvider` enum with metadata
+- [ ] Create client implementing `AIClientProtocol`
+- [ ] Register in `AIClientFactory`
+- [ ] Add unit tests
+- [ ] Update documentation
+
+### Adding a New View
+
+```swift
+import SwiftUI
+
+struct MyNewView: View {
+    @EnvironmentObject var settingsViewModel: SettingsViewModel
+    @State private var selectedItem: Item?
+    
+    var body: some View {
+        VStack {
+            // Content
+        }
+        .navigationTitle("My Feature")
+    }
+}
+
+#Preview {
+    MyNewView()
+        .environmentObject(SettingsViewModel())
+}
+```
+
+**Checklist**:
+
+- [ ] Add to navigation structure
+- [ ] Add accessibility identifiers
+- [ ] Add preview
+- [ ] Follow Sorty's UX guidelines (haptics, animations, hover effects)
+
+### Adding a New Manager
+
+```swift
+@MainActor
+class MyFeatureManager: ObservableObject {
+    @Published var state: FeatureState = .idle
+    
+    private let dependency: SomeDependency
+    
+    init(dependency: SomeDependency = .default) {
+        self.dependency = dependency
+    }
+    
+    func performAction() async {
+        state = .loading
+        // Perform work
+        state = .loaded
+    }
+}
+```
+
+**Checklist**:
+
+- [ ] Create as `@MainActor ObservableObject`
+- [ ] Add to `SortyApp` as `@StateObject`
+- [ ] Inject via `.environmentObject()`
+- [ ] Add unit tests
+
+## UX & Microinteractions
+
+Sorty is a polished, detail-oriented Mac app. Be thoughtful about the small things:
+
+**Haptics**: Use `HapticFeedbackManager.shared` for tactile feedback
+
+```swift
+Button("Organize") {
+    HapticFeedbackManager.shared.selection()
+    organize()
+}
+.onHover { hovering in
+    if hovering {
+        HapticFeedbackManager.shared.light()
+    }
+}
+```
+
+**Animations**: Use `.animatedAppearance(delay:)` for staggered entrances
+
+```swift
+ForEach(items.indices, id: \.self) { index in
+    ItemCard(item: items[index])
+        .animatedAppearance(delay: Double(index) * 0.05)
+}
+```
+
+**Hover effects**: Interactive elements should respond to hover
+
+```swift
+.onHover { hovering in
+    withAnimation(.easeInOut(duration: 0.2)) {
+        isHovered = hovering
+    }
+}
+.opacity(isHovered ? 0.8 : 1.0)
+```
+
+See `AGENTS.md:28-34` for complete UX guidelines.
+
+## Questions and Support
+
+- **General questions**: Open a [GitHub Discussion](https://github.com/shirishpothi/Sorty/discussions)
+- **Bug reports**: Use the [bug report template](https://github.com/shirishpothi/Sorty/issues/new?template=bug_report.md)
+- **Security issues**: Use [GitHub's private vulnerability reporting](https://github.com/shirishpothi/Sorty/security/advisories/new) (do not open public issues)
+- **Code of Conduct violations**: Report via [GitHub Discussions](https://github.com/shirishpothi/Sorty/discussions)
+
+## License
+
+By contributing to Sorty, you agree that your contributions will be licensed under the GPL v3 license.
+
+## Next Steps
+
+- Read the [Architecture Guide](/developer/architecture)
+- Learn how to [add AI providers](/developer/ai-providers)
+- Explore the [agent guides](https://github.com/shirishpothi/Sorty/tree/main/docs/agent-guides)
+- Check out [open issues](https://github.com/shirishpothi/Sorty/issues)
+
+---
+
+Thank you for helping make Sorty better!

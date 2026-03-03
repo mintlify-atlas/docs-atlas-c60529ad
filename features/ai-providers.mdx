@@ -1,0 +1,449 @@
+---
+title: AI Providers
+description: Connect Sorty to OpenAI, Anthropic, Ollama, Apple Intelligence, and more
+---
+
+## Supported Providers
+
+Sorty supports multiple AI providers, from cloud-based services to on-device models:
+
+<CardGroup cols={2}>
+  <Card title="OpenAI" icon="openai">
+    GPT-4, GPT-4 Turbo, GPT-3.5
+    
+    Supports vision mode for image analysis.
+  </Card>
+  
+  <Card title="Anthropic" icon="message">
+    Claude 3.5 Sonnet, Claude 3 Opus/Haiku
+    
+    Strong reasoning, detailed explanations.
+  </Card>
+  
+  <Card title="Apple Intelligence" icon="apple">
+    On-device foundation models
+    
+    Private, no data leaves your Mac. Requires macOS 15.1+, M-series chip.
+  </Card>
+  
+  <Card title="Ollama" icon="server">
+    Local LLMs (Llama, Mistral, etc.)
+    
+    Run models locally for complete privacy.
+  </Card>
+  
+  <Card title="GitHub Copilot" icon="github">
+    GitHub Copilot LLM access
+    
+    Use your existing Copilot subscription.
+  </Card>
+  
+  <Card title="OpenRouter" icon="route">
+    Multi-provider gateway
+    
+    Access to 100+ models through one API.
+  </Card>
+</CardGroup>
+
+<Note>
+All providers implement the `AIClientProtocol`, making them interchangeable.
+</Note>
+
+## Provider Factory
+
+Sorty uses a factory pattern to instantiate the correct client:
+
+```swift
+public struct AIClientFactory {
+    public static func createClient(config: AIConfig) throws -> AIClientProtocol {
+        switch config.provider {
+        case .openAI, .groq, .openAICompatible, .openRouter, .ollama, .gemini:
+            return OpenAIClient(config: config)
+            
+        case .githubCopilot:
+            return GitHubCopilotClient(config: config)
+            
+        case .anthropic:
+            return AnthropicClient(config: config)
+            
+        case .appleFoundationModel:
+            if AppleFoundationModelClient.isAvailable() {
+                return AppleFoundationModelClient(config: config)
+            }
+            throw AIClientError.apiError(
+                statusCode: 501,
+                message: "Apple Intelligence is not supported on this version of macOS."
+            )
+        }
+    }
+}
+```
+
+## Configuration
+
+### OpenAI
+
+<Steps>
+  <Step title="Get API Key">
+    Sign up at [platform.openai.com](https://platform.openai.com) and create an API key.
+  </Step>
+  
+  <Step title="Configure in Sorty">
+    Navigate to **Settings → AI Provider** and select **OpenAI**.
+    
+    - **API URL**: `https://api.openai.com/v1`
+    - **API Key**: Your OpenAI API key
+    - **Model**: `gpt-4-turbo-preview` (recommended)
+  </Step>
+  
+  <Step title="Enable Vision (Optional)">
+    Toggle **Enable Vision** to use GPT-4 Vision for image analysis.
+  </Step>
+</Steps>
+
+<Accordion title="Recommended Models">
+  | Model | Speed | Quality | Vision | Cost |
+  |-------|-------|---------|--------|------|
+  | **gpt-4-turbo-preview** | Medium | Excellent | Yes | $$$ |
+  | **gpt-4** | Slow | Excellent | Yes | $$$$ |
+  | **gpt-3.5-turbo** | Fast | Good | No | $ |
+  | **gpt-4o** | Fast | Excellent | Yes | $$$ |
+</Accordion>
+
+### Anthropic
+
+<Steps>
+  <Step title="Get API Key">
+    Sign up at [console.anthropic.com](https://console.anthropic.com) and create an API key.
+  </Step>
+  
+  <Step title="Configure in Sorty">
+    Navigate to **Settings → AI Provider** and select **Anthropic**.
+    
+    - **API URL**: `https://api.anthropic.com/v1`
+    - **API Key**: Your Anthropic API key (starts with `ant-api-`)
+    - **Model**: `claude-3-5-sonnet-20241022` (recommended)
+  </Step>
+</Steps>
+
+<Accordion title="Recommended Models">
+  | Model | Speed | Quality | Context Window |
+  |-------|-------|---------|----------------|
+  | **claude-3-5-sonnet-20241022** | Fast | Excellent | 200K tokens |
+  | **claude-3-opus-20240229** | Medium | Best | 200K tokens |
+  | **claude-3-haiku-20240307** | Very Fast | Good | 200K tokens |
+</Accordion>
+
+### Apple Intelligence
+
+<Warning>
+Requires macOS 15.1+ (macOS Sequoia) and an M-series chip (M1/M2/M3/M4).
+</Warning>
+
+<Steps>
+  <Step title="Enable Apple Intelligence">
+    Go to **System Settings → Apple Intelligence & Siri** and enable Apple Intelligence.
+  </Step>
+  
+  <Step title="Configure in Sorty">
+    Navigate to **Settings → AI Provider** and select **Apple Foundation Models**.
+    
+    No API key required - models run on-device.
+  </Step>
+</Steps>
+
+<Accordion title="Privacy Benefits">
+  - **100% On-Device**: Nothing leaves your Mac
+  - **No API Costs**: Free to use
+  - **No Network Required**: Works offline
+  - **No Rate Limits**: Process unlimited files
+  
+  **Limitations:**
+  - Smaller context window than cloud models
+  - May be slower than server-side GPUs
+  - No vision mode support (yet)
+</Accordion>
+
+### Ollama (Local Models)
+
+<Steps>
+  <Step title="Install Ollama">
+    Download from [ollama.ai](https://ollama.ai) and install.
+    
+    ```bash
+    # macOS/Linux
+    curl -fsSL https://ollama.ai/install.sh | sh
+    ```
+  </Step>
+  
+  <Step title="Pull a Model">
+    ```bash
+    ollama pull llama3.2
+    # or
+    ollama pull mistral
+    # or
+    ollama pull qwen2.5
+    ```
+  </Step>
+  
+  <Step title="Start Ollama Server">
+    ```bash
+    ollama serve
+    ```
+    
+    The server runs on `http://localhost:11434` by default.
+  </Step>
+  
+  <Step title="Configure in Sorty">
+    Navigate to **Settings → AI Provider** and select **Ollama**.
+    
+    - **API URL**: `http://localhost:11434/v1`
+    - **Model**: `llama3.2` (or your pulled model)
+    - **Requires API Key**: OFF
+  </Step>
+</Steps>
+
+<Accordion title="Recommended Local Models">
+  | Model | Size | Quality | Speed | RAM Required |
+  |-------|------|---------|-------|-------------|
+  | **llama3.2** | 3B | Good | Fast | 8GB |
+  | **mistral** | 7B | Very Good | Medium | 16GB |
+  | **qwen2.5** | 7B | Excellent | Medium | 16GB |
+  | **llama3.1** | 8B | Excellent | Medium | 16GB |
+  | **llama3.1:70b** | 70B | Best | Slow | 64GB+ |
+</Accordion>
+
+### GitHub Copilot
+
+<Steps>
+  <Step title="Authenticate">
+    Navigate to **Settings → AI Provider** and select **GitHub Copilot**.
+    
+    Click **Authenticate** to sign in with GitHub.
+  </Step>
+  
+  <Step title="Verify">
+    Sorty will use your existing Copilot subscription.
+  </Step>
+</Steps>
+
+<Note>
+Requires an active GitHub Copilot subscription ($10/month for individuals).
+</Note>
+
+### OpenRouter
+
+<Steps>
+  <Step title="Get API Key">
+    Sign up at [openrouter.ai](https://openrouter.ai) and create an API key.
+  </Step>
+  
+  <Step title="Configure in Sorty">
+    Navigate to **Settings → AI Provider** and select **OpenRouter**.
+    
+    - **API URL**: `https://openrouter.ai/api/v1`
+    - **API Key**: Your OpenRouter key
+    - **Model**: See [available models](https://openrouter.ai/models)
+  </Step>
+</Steps>
+
+<Accordion title="Popular Models on OpenRouter">
+  - `anthropic/claude-3.5-sonnet`
+  - `openai/gpt-4-turbo`
+  - `meta-llama/llama-3.1-70b-instruct`
+  - `google/gemini-pro-1.5`
+  - `mistralai/mistral-large`
+</Accordion>
+
+## Streaming Support
+
+All providers support streaming responses for live progress updates:
+
+```swift
+public protocol AIClientProtocol {
+    var streamingDelegate: StreamingDelegate? { get set }
+    
+    func analyze(
+        files: [FileItem],
+        customInstructions: String?,
+        personaPrompt: String?,
+        temperature: Double?
+    ) async throws -> OrganizationPlan
+}
+
+public protocol StreamingDelegate {
+    func didReceiveChunk(_ chunk: String)
+    func didComplete(content: String)
+    func didFail(error: Error)
+}
+```
+
+<Accordion title="How Streaming Works">
+  1. **Client sends request** with streaming enabled
+  2. **Server responds** in chunks via Server-Sent Events (SSE)
+  3. **Delegate receives chunks** and updates UI in real-time
+  4. **Progress insights** are extracted from `>> ` prefixed lines
+  5. **JSON output** is parsed when complete
+</Accordion>
+
+## Error Handling
+
+Sorty provides detailed, user-friendly error messages:
+
+<Tabs>
+  <Tab title="401 Unauthorized">
+    **Authentication failed**
+    
+    Your API key may be invalid or expired. Check your credentials in Settings.
+  </Tab>
+  
+  <Tab title="403 Forbidden">
+    **Access denied**
+    
+    Your API key doesn't have permissions for this model or feature.
+  </Tab>
+  
+  <Tab title="404 Not Found">
+    **Model or endpoint not found**
+    
+    Verify the model name and API URL in settings.
+  </Tab>
+  
+  <Tab title="429 Rate Limited">
+    **Rate limit exceeded**
+    
+    You've sent too many requests. Wait a moment before trying again.
+  </Tab>
+  
+  <Tab title="500 Server Error">
+    **Internal server error**
+    
+    The AI provider is experiencing technical difficulties. Try again later.
+  </Tab>
+</Tabs>
+
+<Note>
+API keys are automatically redacted from error messages for security.
+</Note>
+
+## Vision Support
+
+### Compatible Providers
+
+| Provider | Vision Support | Models |
+|----------|----------------|--------|
+| **OpenAI** | ✅ Yes | gpt-4-vision-preview, gpt-4-turbo, gpt-4o |
+| **Anthropic** | ✅ Yes | claude-3-opus, claude-3-sonnet, claude-3.5-sonnet |
+| **Ollama** | ⚠️ Limited | llava, bakllava (experimental) |
+| **Apple Intelligence** | ❌ Not yet | - |
+| **GitHub Copilot** | ❌ No | - |
+
+### How Vision Analysis Works
+
+<Steps>
+  <Step title="Image Detection">
+    Sorty identifies image files by extension:
+    ```swift
+    private let visionImageExtensions: Set<String> = 
+        ["jpg", "jpeg", "png", "heic", "webp"]
+    ```
+  </Step>
+  
+  <Step title="Image Preprocessing">
+    Images are resized and encoded as base64 (max 1024x1024 for efficiency).
+  </Step>
+  
+  <Step title="Multimodal Request">
+    Images are sent alongside filenames to the AI:
+    ```swift
+    func analyzeWithImages(
+        files: [FileItem],
+        imageData: [String: Data],
+        customInstructions: String?,
+        personaPrompt: String?,
+        temperature: Double?
+    ) async throws -> OrganizationPlan
+    ```
+  </Step>
+  
+  <Step title="Vision Insights">
+    AI analyzes image content and suggests organization based on:
+    - Objects and scenes
+    - Text within images
+    - Visual similarity
+    - Context clues
+  </Step>
+</Steps>
+
+<Warning>
+Vision analysis significantly increases API costs and processing time. Use selectively.
+</Warning>
+
+## Deep Scan Support
+
+### Provider Compatibility
+
+```swift
+extension AIProvider {
+    public var supportsDeepScan: Bool {
+        switch self {
+        case .openAI, .anthropic, .openAICompatible, .openRouter:
+            return true
+        case .ollama, .githubCopilot, .appleFoundationModel:
+            return false
+        }
+    }
+}
+```
+
+<Accordion title="Why Some Providers Don't Support Deep Scan">
+  - **Ollama**: Local models have smaller context windows
+  - **Apple Intelligence**: API limitations
+  - **GitHub Copilot**: Designed for code completion, not document analysis
+</Accordion>
+
+## Timeout & Retry
+
+Configure request timeouts in **Settings → Advanced**:
+
+```swift
+// Default timeout
+let timeout: TimeInterval = 120.0 // 2 minutes
+
+// For large batches
+let extendedTimeout: TimeInterval = 300.0 // 5 minutes
+```
+
+<Tip>
+Increase timeout for slow providers or large file batches.
+</Tip>
+
+## API Key Security
+
+API keys are stored securely in macOS Keychain:
+
+```swift
+// Keys are never stored in UserDefaults or plain text
+Keychain.save(apiKey, for: "sorty.api.key")
+
+// Privacy Mode blurs keys in UI
+if privacyModeEnabled {
+    displayedKey = "sk-••••••••••••••••"
+}
+```
+
+## Related Features
+
+<CardGroup cols={2}>
+  <Card title="File Organization" icon="folder-tree" href="/features/file-organization">
+    Learn how the AI organizes your files
+  </Card>
+  
+  <Card title="Personas" icon="user-group" href="/features/personas">
+    Customize AI behavior for different workflows
+  </Card>
+  
+  <Card title="The Learnings" icon="brain" href="/features/the-learnings">
+    Train the AI on your preferences
+  </Card>
+</CardGroup>

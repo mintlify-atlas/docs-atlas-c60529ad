@@ -1,0 +1,385 @@
+---
+title: App Settings & Preferences
+description: Configure Sorty's AI provider, organization strategy, and app behavior
+---
+
+Sorty's settings are organized into logical categories to help you customize every aspect of file organization. Access settings via `⌘,` or the Settings menu.
+
+## AI Provider
+
+Configure your AI provider and model to power file organization.
+
+### Available Providers
+
+| Provider | Best For | Requires API Key |
+|----------|----------|------------------|
+| **OpenAI** | GPT-4, GPT-4o, GPT-3.5 | Yes |
+| **Anthropic** | Claude 3.5 Sonnet, Claude 3 | Yes |
+| **GitHub Copilot** | Developers with Copilot subscription | GitHub OAuth |
+| **Gemini** | Google's Gemini models | Yes |
+| **Groq** | Fast inference with open models | Yes |
+| **OpenRouter** | Access to multiple providers | Yes |
+| **Ollama** | Local, on-device inference | No |
+| **Apple Intelligence** | On-device privacy (macOS 15.1+) | No |
+| **OpenAI-Compatible** | Self-hosted or custom APIs | Optional |
+
+### Provider Configuration
+
+<Steps>
+  <Step title="Select Provider">
+    Navigate to **Settings → AI Provider** and choose your provider from the list.
+  </Step>
+  <Step title="Configure Credentials">
+    - **API-based providers**: Enter your API URL and API key
+    - **GitHub Copilot**: Sign in with your GitHub account via device code flow
+    - **Apple Intelligence**: No configuration needed (requires macOS 15.1+ and M-series chip)
+  </Step>
+  <Step title="Select Model">
+    Click the model selector to browse available models for your provider. Use the search to filter by capability (vision, streaming, etc.).
+  </Step>
+  <Step title="Test Connection">
+    Click **Test Connection** to verify your credentials and model availability.
+  </Step>
+</Steps>
+
+<Note>
+  **API Keys are stored securely** in the macOS Keychain and never logged or transmitted outside your chosen provider.
+</Note>
+
+### Model Selection
+
+Sorty includes a comprehensive model catalog with:
+- **Vision support indicators** for image-aware organization
+- **Context window sizes** to understand token limits
+- **Recommended models** for different use cases
+- **Real-time availability checking** for your provider
+
+Popular model choices:
+
+```yaml
+OpenAI:
+  - gpt-4o (recommended for vision)
+  - gpt-4-turbo
+  - gpt-3.5-turbo (fast, cost-effective)
+
+Anthropic:
+  - claude-3-5-sonnet-20241022 (best quality)
+  - claude-3-haiku (fast)
+
+Ollama (local):
+  - llama3.1
+  - mistral
+  - gemma2
+```
+
+---
+
+## Organization Strategy
+
+Control how Sorty analyzes and organizes your files.
+
+### Scanning Options
+
+#### Deep Scanning
+
+When enabled, Sorty extracts rich metadata from files:
+
+- **PDF files**: Text content, title, author, keywords
+- **Images**: EXIF data (camera model, GPS, date taken)
+- **Audio/Video**: Duration, codec, bitrate metadata
+- **Documents**: Title, subject, creation date
+
+<CodeGroup>
+```swift Example File Analysis
+// Without Deep Scan
+"IMG_1234.jpg" → Photos folder
+
+// With Deep Scan
+"IMG_1234.jpg" (EXIF: Canon EOS R5, Paris, 2024-03-15)
+  → Travel/Paris_2024/Canon_Shots
+```
+</CodeGroup>
+
+<Warning>
+  Deep Scanning increases API token usage and processing time. Not supported by all models (requires large context windows).
+</Warning>
+
+#### Smart Renaming
+
+AI suggests descriptive filenames based on content:
+
+| Original | Smart Rename |
+|----------|-------------|
+| `IMG_2341.jpg` | `sunset_beach_california.jpg` |
+| `Untitled.pdf` | `invoice_acme_corp_march_2024.pdf` |
+| `Screen Shot 2024-03-15 at 10.23.45 AM.png` | `code_review_screenshot.png` |
+
+### AI Vision for Images
+
+Use multimodal AI to analyze image content for better organization.
+
+<CodeGroup>
+```yaml Configuration
+Enable AI Vision: ON
+Images per Batch: 5
+Supported Models:
+  - gpt-4o
+  - gpt-4-turbo
+  - claude-3-5-sonnet
+  - gemini-1.5-pro
+```
+</CodeGroup>
+
+<Accordion title="Vision Use Cases">
+  - Classify screenshots by app or content
+  - Group photos by subject (people, landscapes, food)
+  - Identify document types (receipts, invoices, forms)
+  - Detect duplicates with different names
+</Accordion>
+
+<Warning>
+  Vision processing significantly increases API costs. Set **Images per Batch** conservatively (default: 5).
+</Warning>
+
+### Naming Style
+
+Define how files should be named when Smart Renaming is enabled.
+
+#### Built-in Presets
+
+| Preset | Description | Example Output |
+|--------|-------------|----------------|
+| **Descriptive** | Clear, readable names | `project_proposal_final.pdf` |
+| **Concise** | Short and compact | `proj_prop.pdf` |
+| **Technical** | Developer-friendly | `project-proposal-v2.pdf` |
+| **Date Prefix** | ISO date + description | `2024-03-15_project_proposal.pdf` |
+| **Lowercase** | All lowercase with underscores | `project_proposal_final.pdf` |
+
+#### Custom Naming Instructions
+
+Provide your own rules for the AI to follow:
+
+```markdown Example Instructions
+- Use camelCase for all filenames
+- Remove spaces and use underscores
+- Include project codes in brackets [PROJ-123]
+- Preserve original file extensions
+- Add date suffix in YYYY-MM-DD format
+```
+
+<Tip>
+  Use the **Generate Instructions** button to create custom naming rules by describing your preferences in plain language.
+</Tip>
+
+---
+
+## Organization Rules
+
+Define constraints and preferences for file organization.
+
+### Organization Limits
+
+**Max Top-Level Folders**: Control how many main categories the AI creates
+
+<CodeGroup>
+```yaml Settings
+Minimal (3 folders):
+  - Best for simple organization
+  - Groups files into broad categories
+  - Example: Work, Personal, Archive
+
+Balanced (10 folders):
+  - Default setting
+  - Good mix of specificity and simplicity
+
+Detailed (20 folders):
+  - Maximum granularity
+  - Creates many specialized categories
+```
+</CodeGroup>
+
+<Note>
+  Subfolders are **not** limited by this setting. The AI can create unlimited nested folder structures within top-level categories.
+</Note>
+
+### Content Rules
+
+#### File Tagging
+
+Enable AI-suggested Finder tags for organized files:
+
+- Tags are searchable in Spotlight and Finder
+- Common tags: `Invoice`, `Personal`, `Important`, `Archive`, `Work`
+- Custom tags suggested based on file content
+- Compatible with macOS Smart Folders
+
+<CodeGroup>
+```swift Tag Examples
+"invoice_march_2024.pdf"
+  → Tags: [Invoice, Financial, 2024]
+
+"family_vacation_photo.jpg"
+  → Tags: [Personal, Photos, Travel]
+
+"meeting_notes.md"
+  → Tags: [Work, Notes, Important]
+```
+</CodeGroup>
+
+### Organization Style (Personas)
+
+Personas customize AI behavior for different workflows. See [Personas](/features/personas) for detailed configuration.
+
+Quick persona selection in **Settings → Organization Rules → Organization Style**:
+
+- **General**: Standard categories (Documents, Media, Archives)
+- **Developer**: Groups by language, framework, project
+- **Photographer**: Organizes by shoot date, camera, location
+- **Music Producer**: Sorts samples, projects, stems
+- **Student**: Groups by course, semester, subject
+- **Business**: Organizes by client, project, fiscal period
+
+---
+
+## Parameter Tuning
+
+Fine-tune AI behavior for advanced use cases.
+
+### Temperature Control
+
+Adjusts AI creativity vs. determinism:
+
+| Temperature | Behavior | Best For |
+|-------------|----------|----------|
+| **0.0 - 0.3** | Predictable, strict | Consistent daily organization |
+| **0.4 - 0.6** | Balanced | Most use cases (default: 0.5) |
+| **0.7 - 1.0** | Creative, exploratory | One-time cleanup projects |
+
+### Token Limits
+
+Control request and response size:
+
+- **Max Request Tokens**: Files to include in a single API call
+- **Max Response Tokens**: Length of AI's organization plan
+- **Auto-adjust**: Sorty automatically reduces batch size if token limits are exceeded
+
+### Timeout Settings
+
+```yaml Recommended Timeouts
+Fast providers (OpenAI, Groq): 30-60s
+Slow providers (local Ollama): 120-300s
+Vision-enabled requests: 60-120s
+```
+
+---
+
+## Advanced Settings
+
+### Streaming Responses
+
+Enable real-time AI output as it generates:
+
+<Accordion title="Streaming Benefits">
+  - See organization structure as it's created
+  - Cancel long-running requests early
+  - Better progress feedback
+  - Reduced perceived latency
+</Accordion>
+
+### Request Retries
+
+Automatic retry logic for failed API calls:
+
+- **Max Retries**: 3 (default)
+- **Backoff Strategy**: Exponential (1s, 2s, 4s)
+- **Retry Conditions**: Network errors, rate limits, timeouts
+
+### Privacy Mode
+
+<CodeGroup>
+```bash Enable Privacy Mode
+defaults write com.sorty.app privacyModeEnabled -bool true
+```
+</CodeGroup>
+
+When enabled:
+- API keys are blurred until manually revealed
+- GitHub usernames are blurred until hover
+- Sensitive paths are redacted in logs
+
+---
+
+## Help & Support
+
+### Built-in Documentation
+
+Access help resources directly in the app:
+
+- **Settings → Help & Support**: Browse quick start guides
+- **Deeplink Reference**: Copy automation URLs for Shortcuts
+- **FAQ**: Common questions and troubleshooting
+
+### External Resources
+
+- **GitHub Repository**: [shirishpothi/Sorty](https://github.com/shirishpothi/Sorty)
+- **Issue Reporting**: Use GitHub Issues for bugs
+- **Feature Requests**: Submit via GitHub Discussions
+- **Security Issues**: Email directly (do not open public issues)
+
+### Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `⌘,` | Open Settings |
+| `⌘1-5` | Navigate to settings categories |
+| `⌘Z` | Undo last organization |
+| `⇧⌘L` | Open The Learnings dashboard |
+| `⇧⌘H` | View organization history |
+
+---
+
+## Experimental Features
+
+Enable beta features via Terminal:
+
+<CodeGroup>
+```bash Feature Flags
+# Enable Finder Integration
+defaults write com.sorty.app finderIntegrationEnabled -bool true
+
+# Enable Batch Organization
+defaults write com.sorty.app batchOrganizationEnabled -bool true
+
+# Enable GitHub Update Checker
+defaults write com.sorty.app updateCheckerEnabled -bool true
+
+# Enable Advanced Notification Controls
+defaults write com.sorty.app advancedNotificationSettingsEnabled -bool true
+```
+</CodeGroup>
+
+<Warning>
+  Experimental features may be unstable or incomplete. Use at your own risk.
+</Warning>
+
+---
+
+## Resetting Settings
+
+### Reset All Settings
+
+Restore default configuration:
+
+1. **Settings → Troubleshooting → Reset Sorty**
+2. Confirm the reset action
+3. App will restart with factory defaults
+
+### Clear Specific Data
+
+- **Cache**: Settings → Troubleshooting → Clear Cache
+- **Learning Data**: Settings → Troubleshooting → Learnings Data → Delete All
+- **History**: Settings → Troubleshooting → Clear Organization History
+
+<Note>
+  Resetting settings does **not** delete your API keys (stored in Keychain) or watched folders.
+</Note>

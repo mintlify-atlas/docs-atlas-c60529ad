@@ -1,0 +1,613 @@
+---
+title: sorty CLI Reference
+description: Complete command-line reference for the Sorty CLI tool
+---
+
+# sorty CLI Reference
+
+The `sorty` command-line tool provides comprehensive control over the Sorty application from your terminal. It uses URL schemes to communicate with the main app.
+
+## Installation
+
+```bash
+make install
+```
+
+This installs the `sorty` CLI script to your system PATH.
+
+## Usage
+
+```bash
+sorty <command> [options]
+```
+
+## Environment Variables
+
+<ParamField path="SORTY_CLI_DRY_RUN" type="boolean" default="0">
+  When set to `1`, prints the URL instead of opening it (useful for debugging)
+</ParamField>
+
+```bash
+# Dry run mode - see what URL would be opened
+SORTY_CLI_DRY_RUN=1 sorty organize ~/Downloads
+```
+
+---
+
+## Commands
+
+### organize
+
+Start organizing a directory with AI-powered file sorting.
+
+```bash
+sorty organize <path> [--persona <id>] [--auto]
+```
+
+<ParamField path="path" type="string" required>
+  Path to the directory to organize. Can be relative or absolute.
+</ParamField>
+
+<ParamField path="--persona" type="string">
+  Persona ID to use for organization. Options:
+  - `general` - Standard categories (Documents, Media, Archives)
+  - `developer` - Groups by project, language, tech stack
+  - `photographer` - Organizes by shoots, dates, camera metadata
+  - `music_producer` - Projects, samples, stems, sessions
+  - `student` - By subject, course, semester
+  - `business` - By client, project, fiscal period
+</ParamField>
+
+<ParamField path="--auto" type="boolean">
+  Automatically start organization without manual confirmation
+</ParamField>
+
+#### Examples
+
+```bash
+# Organize current directory
+sorty organize .
+
+# Organize Downloads with developer persona
+sorty organize ~/Downloads --persona developer
+
+# Auto-start organization
+sorty organize /path/to/folder --auto
+
+# Combine persona and auto-start
+sorty organize ~/Documents --persona student --auto
+```
+
+#### Behavior
+
+- Resolves the path to an absolute directory path
+- Validates that the path exists and is a directory
+- Opens Sorty with the organization view
+- URL format: `sorty://organize?autostart={true|false}&path={encoded_path}&persona={encoded_persona}`
+
+---
+
+### duplicates
+
+Scan a directory for duplicate files using SHA-256 content hashing.
+
+```bash
+sorty duplicates <path> [--auto]
+```
+
+<ParamField path="path" type="string" required>
+  Path to the directory to scan for duplicates
+</ParamField>
+
+<ParamField path="--auto" type="boolean">
+  Automatically start scanning without manual confirmation
+</ParamField>
+
+#### Examples
+
+```bash
+# Scan Downloads for duplicates
+sorty duplicates ~/Downloads
+
+# Auto-start duplicate scan
+sorty duplicates /Volumes/Backup --auto
+```
+
+#### Output
+
+Opens the Duplicates view in Sorty, where you can:
+- Review duplicate file groups
+- Choose which copies to keep
+- Delete duplicates with safe deletion enabled
+
+---
+
+### status / health
+
+View Workspace Health metrics and analysis.
+
+```bash
+sorty status
+sorty health
+```
+
+Both commands are aliases and open the Workspace Health dashboard.
+
+#### What You'll See
+
+- Space distribution by file type
+- Clutter growth rate
+- Empty folders
+- Very old files (1+ year)
+- Broken symlinks
+- Duplicate candidates
+- Cleanup opportunities
+
+---
+
+### list
+
+View all watched folders.
+
+```bash
+sorty list
+```
+
+Alias for `sorty watched` (with no arguments).
+
+---
+
+### watched
+
+Manage watched folders for automatic organization.
+
+```bash
+sorty watched              # View watched folders
+sorty watched add <path>   # Add a new watched folder
+```
+
+<ParamField path="add" type="subcommand">
+  Add a new directory to the watched folders list
+</ParamField>
+
+<ParamField path="path" type="string" required>
+  Absolute or relative path to the directory to watch
+</ParamField>
+
+#### Examples
+
+```bash
+# View all watched folders
+sorty watched
+
+# Add Downloads to watched folders
+sorty watched add ~/Downloads
+
+# Add custom directory
+sorty watched add /Volumes/Projects
+```
+
+---
+
+### exclusions
+
+Manage exclusion rules to protect files from organization.
+
+```bash
+sorty exclusions              # View exclusion rules
+sorty exclusions add <pattern> # Add a new exclusion rule
+```
+
+<ParamField path="add" type="subcommand">
+  Add a new exclusion pattern
+</ParamField>
+
+<ParamField path="pattern" type="string" required>
+  Glob pattern or filename to exclude. Supports wildcards.
+</ParamField>
+
+#### Examples
+
+```bash
+# View all exclusion rules
+sorty exclusions
+
+# Exclude all log files
+sorty exclusions add "*.log"
+
+# Exclude temporary files
+sorty exclusions add "*.tmp"
+
+# Exclude specific directories
+sorty exclusions add "node_modules/*"
+
+# Multiple-word patterns need quotes
+sorty exclusions add "my important files*"
+```
+
+#### Common Patterns
+
+| Pattern | Description |
+|---------|-------------|
+| `*.log` | All log files |
+| `*.tmp` | Temporary files |
+| `.DS_Store` | macOS metadata files |
+| `node_modules/*` | Node.js dependencies |
+| `.git/*` | Git repository data |
+| `*.temp` | Temp files |
+| `Desktop.ini` | Windows metadata |
+
+---
+
+### storage
+
+Manage storage locations for organized files.
+
+```bash
+sorty storage              # View storage locations
+sorty storage add <path>   # Add a new storage location
+```
+
+<ParamField path="add" type="subcommand">
+  Add a new storage location
+</ParamField>
+
+<ParamField path="path" type="string" required>
+  Path to the storage directory
+</ParamField>
+
+#### Examples
+
+```bash
+# View storage locations
+sorty storage
+
+# Add external drive as storage
+sorty storage add /Volumes/Archive
+
+# Add network storage
+sorty storage add /Volumes/NAS/Documents
+```
+
+---
+
+### settings
+
+Open the Settings panel, optionally to a specific section.
+
+```bash
+sorty settings [section]
+```
+
+<ParamField path="section" type="string">
+  Specific settings section to open. Options:
+  - `rules` - Exclusion rules
+  - `provider` - AI provider configuration
+  - `strategy` - Organization strategy
+  - `tuning` - AI tuning (temperature, etc.)
+  - `automation` - Watched folders and automation
+  - `finder` - Finder integration
+  - `notifications` - Notification preferences
+  - `advanced` - Advanced settings
+  - `troubleshooting` - Troubleshooting tools
+  - `help` - Help and support
+</ParamField>
+
+#### Examples
+
+```bash
+# Open general settings
+sorty settings
+
+# Open AI provider settings
+sorty settings provider
+
+# Open exclusion rules
+sorty settings rules
+
+# Open advanced settings
+sorty settings advanced
+```
+
+---
+
+### persona
+
+Manage organization personas.
+
+```bash
+sorty persona create                # Open persona creator
+sorty persona generate <prompt>     # Generate persona from description
+```
+
+<ParamField path="create" type="subcommand">
+  Open the persona creator interface
+</ParamField>
+
+<ParamField path="generate" type="subcommand">
+  Generate a new persona using AI from a natural language description
+</ParamField>
+
+<ParamField path="prompt" type="string" required>
+  Description of the persona you want to create
+</ParamField>
+
+#### Examples
+
+```bash
+# Open persona creator
+sorty persona create
+
+# Generate persona for ebook collection
+sorty persona generate "I want to organize my sci-fi ebook collection by author"
+
+# Generate persona for photography
+sorty persona generate "professional wedding photographer with multiple cameras"
+
+# Generate custom persona
+sorty persona generate "music teacher with sheet music and recordings"
+```
+
+#### Generated Personas
+
+The AI analyzes your description and creates:
+- Custom system prompt
+- Appropriate folder structure preferences
+- File type handling rules
+- Tagging strategy
+
+---
+
+### rules
+
+Add an exclusion rule (alias for `sorty exclusions add`).
+
+```bash
+sorty rules add <pattern>
+```
+
+<ParamField path="pattern" type="string" required>
+  Glob pattern to exclude from organization
+</ParamField>
+
+#### Examples
+
+```bash
+# Exclude cache files
+sorty rules add "*.cache"
+
+# Exclude build directories
+sorty rules add "build/*"
+```
+
+---
+
+### learnings
+
+Open The Learnings dashboard for managing your AI learning profile.
+
+```bash
+sorty learnings
+```
+
+Opens the biometric-protected Learnings dashboard where you can:
+- View learned preferences
+- Start honing sessions
+- Review corrections and feedback
+- Manage learning data
+
+---
+
+### history
+
+View organization history and perform reverts.
+
+```bash
+sorty history
+```
+
+Opens the History view showing:
+- Past organization sessions
+- Files moved in each session
+- Revert options (Undo with ⌘Z)
+- Safe deletion recovery
+
+---
+
+### help
+
+Show CLI help message.
+
+```bash
+sorty help
+```
+
+Displays a summary of all available commands and options.
+
+---
+
+### update
+
+Check for Sorty updates.
+
+```bash
+sorty update
+```
+
+Opens the Help section with update checking functionality.
+
+#### Update Process
+
+1. Queries GitHub Releases API
+2. Compares installed version with latest release
+3. Shows release notes if update available
+4. Provides download link
+
+---
+
+### version
+
+Show the installed version of Sorty.
+
+```bash
+sorty version
+sorty -v
+sorty --version
+```
+
+#### Output Format
+
+```
+Sorty version 1.0.0 (build 42)
+```
+
+Reads version information from `/Applications/Sorty.app/Contents/Info.plist`.
+
+---
+
+## Error Handling
+
+The CLI provides clear error messages for common issues:
+
+### Path Errors
+
+```bash
+$ sorty organize /nonexistent
+Error: Directory does not exist: /nonexistent
+```
+
+```bash
+$ sorty organize file.txt
+Error: Expected a directory path, got: file.txt
+```
+
+### Missing Arguments
+
+```bash
+$ sorty organize
+Error: Missing required path. Usage: sorty organize <path> [--persona <id>] [--auto]
+```
+
+```bash
+$ sorty watched add
+Error: Missing required path. Usage: sorty watched add <path>
+```
+
+### Unknown Options
+
+```bash
+$ sorty organize . --unknown
+Error: Unknown option for organize: --unknown
+```
+
+### Extra Arguments
+
+```bash
+$ sorty organize . extra args
+Error: Unexpected extra argument for organize: extra
+```
+
+---
+
+## URL Encoding
+
+The CLI handles special characters in paths and arguments:
+
+- Spaces: `My Documents` → `My%20Documents`
+- Special chars: `/path/with spaces & symbols/` → URL-encoded
+- Unicode: Properly encoded for URL schemes
+
+Requires Python 3 for URL encoding (`urllib.parse.quote`).
+
+---
+
+## Integration Examples
+
+### Shell Aliases
+
+```bash
+# Add to ~/.zshrc or ~/.bashrc
+alias organize='sorty organize'
+alias org='sorty organize . --auto'
+alias dupes='sorty duplicates'
+```
+
+### Git Hooks
+
+```bash
+#!/bin/bash
+# .git/hooks/post-merge
+sorty organize . --persona developer --auto
+```
+
+### Cron Jobs
+
+```bash
+# Organize Downloads daily at 2 AM
+0 2 * * * /usr/local/bin/sorty organize ~/Downloads --auto
+```
+
+### Alfred Workflow
+
+```bash
+# Organize current Finder folder
+tell application "Finder"
+  set currentPath to POSIX path of (target of front window as alias)
+end tell
+do shell script "/usr/local/bin/sorty organize '" & currentPath & "'"
+```
+
+---
+
+## Requirements
+
+- macOS 15.0+ (Sequoia)
+- Sorty.app installed at `/Applications/Sorty.app`
+- Python 3 (for URL encoding)
+- Bash shell
+
+---
+
+## Troubleshooting
+
+### Command Not Found
+
+```bash
+# Check if sorty is in PATH
+which sorty
+
+# Re-install if needed
+make install
+```
+
+### Python 3 Not Found
+
+```bash
+# Install via Homebrew
+brew install python3
+```
+
+### App Not Opening
+
+```bash
+# Verify app is installed
+ls /Applications/Sorty.app
+
+# Test URL scheme manually
+open "sorty://help"
+```
+
+### Dry Run Mode
+
+```bash
+# See the URL that would be opened
+SORTY_CLI_DRY_RUN=1 sorty organize .
+```
+
+---
+
+## See Also
+
+- [learnings CLI Reference](/cli/learnings) - The Learnings CLI tool
+- [Deeplinks Overview](/deeplinks/overview) - URL scheme reference
+- [Personas](/features/personas) - Persona customization guide

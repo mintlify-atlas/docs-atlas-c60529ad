@@ -1,0 +1,586 @@
+---
+title: 'Management Deeplinks'
+description: 'Deeplinks for settings, personas, watched folders, exclusion rules, and utility features'
+---
+
+# Management Deeplinks
+
+Control Sorty's configuration, AI personas, and automation features via the `sorty://` URL scheme.
+
+---
+
+## Settings
+
+### sorty://settings
+
+Open the Settings view or navigate to a specific settings section.
+
+#### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `section` | String | No | Jump to a specific settings section |
+
+#### Available Sections
+
+| Section ID | Description |
+|------------|-------------|
+| `ai` | AI Provider configuration (API keys, models) |
+| `rules` | Exclusion rules |
+| `provider` | AI provider selection |
+| `strategy` | Organization strategy settings |
+| `tuning` | AI tuning (temperature, tokens, reasoning) |
+| `automation` | Watched folders and auto-organize |
+| `finder` | Finder integration settings |
+| `notifications` | Notification preferences |
+| `advanced` | Advanced settings and debugging |
+| `troubleshooting` | Troubleshooting tools |
+| `help` | Help and documentation |
+
+#### Examples
+
+**Open settings:**
+```
+sorty://settings
+```
+
+**Open AI provider settings:**
+```
+sorty://settings?section=ai
+```
+
+**Open exclusion rules:**
+```
+sorty://settings?section=rules
+```
+
+**Open automation settings:**
+```
+sorty://settings?section=automation
+```
+
+#### Using the CLI
+
+```bash
+# Open settings
+sorty settings
+
+# Open specific section
+sorty settings ai
+sorty settings rules
+sorty settings automation
+```
+
+---
+
+## Persona Management
+
+### sorty://persona
+
+Manage AI personas or generate new ones from text descriptions.
+
+#### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `action` | String | No | Action to perform: `create` or `generate` |
+| `prompt` | String | No | Description for persona generation (used with `action=generate`) |
+| `generate` | Boolean | No | Trigger generation immediately (default: `false`) |
+
+#### Examples
+
+**Open persona management:**
+```
+sorty://persona
+```
+
+**Open persona creator:**
+```
+sorty://persona?action=create
+```
+
+**Generate persona from description:**
+```
+sorty://persona?action=generate&prompt=sci-fi%20ebook%20collector
+```
+
+**Generate persona and start immediately:**
+```
+sorty://persona?action=generate&generate=true&prompt=music%20producer%20with%20lots%20of%20samples
+```
+
+#### Using the CLI
+
+```bash
+# Open persona management
+sorty persona
+
+# Open persona creator
+sorty persona create
+
+# Generate from description
+sorty persona generate "sci-fi ebook collector"
+sorty persona generate "freelance graphic designer"
+sorty persona generate "game developer with Unity projects"
+```
+
+#### How Persona Generation Works
+
+1. **Provide Description**: Describe your workflow or use case
+2. **AI Analysis**: The AI creates a custom system prompt tailored to your needs
+3. **Preview**: Review the generated persona's instructions
+4. **Save**: Save the persona for future use
+5. **Use**: Select it when organizing directories
+
+#### Example Prompts
+
+- "I want to organize my sci-fi ebook collection by author and series"
+- "I'm a wedding photographer who shoots multiple events per week"
+- "I organize 3D models and textures for game development"
+- "I'm a lawyer who needs documents organized by client and case"
+- "I collect and organize music samples for hip-hop production"
+
+---
+
+## The Learnings
+
+### sorty://learnings
+
+Open The Learnings dashboard or perform specific learning actions.
+
+#### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `action` | String | No | Action to perform: `honing` or `stats` |
+
+#### Examples
+
+**Open Learnings dashboard:**
+```
+sorty://learnings
+```
+
+**Start a honing session:**
+```
+sorty://learnings?action=honing
+```
+
+**View learning statistics:**
+```
+sorty://learnings?action=stats
+```
+
+#### Using the CLI
+
+```bash
+# Open Learnings dashboard
+sorty learnings
+
+# Additional CLI-only commands
+learnings status      # Show learning status
+learnings stats       # Show detailed statistics
+learnings export      # Export profile data
+learnings clear       # Delete all learning data
+learnings withdraw    # Pause learning
+```
+
+#### What is The Learnings?
+
+The Learnings is a **passive learning system** that builds a personalized understanding of how you prefer to organize files. It observes:
+
+- **Steering Prompts**: Post-organization feedback and instructions
+- **Honing Answers**: Your explicit preferences from Q&A sessions
+- **Guiding Instructions**: Instructions you provide before organizing
+- **Manual Corrections**: Files you move after AI organization
+- **Reverts**: Organization sessions you undo
+
+#### Honing Sessions
+
+A honing session asks 3-5 questions about your organization philosophy:
+
+- "When you finish a project, what is your preferred archival strategy?"
+- "How do you prefer to organize documents by date?"
+- "Do you prefer flat or nested folder structures?"
+
+Answers become high-priority preferences for future organizations.
+
+#### Security & Privacy
+
+- **Biometric Protection**: Touch ID / Face ID required after initial setup
+- **AES-256 Encryption**: All learning data encrypted with Keychain-stored keys
+- **Local Storage Only**: Data never leaves your device
+- **Session Timeout**: Automatic lock after 5 minutes of inactivity
+
+---
+
+## Watched Folders
+
+### sorty://watched
+
+Manage watched folders for automatic organization.
+
+#### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `action` | String | No | Action to perform: `add` |
+| `path` | String | No | Path to add as watched folder (used with `action=add`) |
+
+#### Examples
+
+**Open watched folders:**
+```
+sorty://watched
+```
+
+**Add a watched folder:**
+```
+sorty://watched?action=add&path=/Users/me/Downloads
+```
+
+#### Using the CLI
+
+```bash
+# Open watched folders view
+sorty watched
+sorty list  # Alternative command
+
+# Add watched folder
+sorty watched add /Users/me/Downloads
+sorty watched add ~/Desktop
+```
+
+#### What are Watched Folders?
+
+Watched folders enable automatic organization:
+
+1. **Add a Folder**: Choose a directory to monitor
+2. **Configure Settings**: Set persona, enable/disable, Smart Drop mode
+3. **Auto-Organize**: New files are automatically organized as they arrive
+
+#### Smart Drop Mode
+
+When enabled, only **new** files dropped into the folder root are organized:
+
+- Existing files and nested contents are left untouched
+- Prevents infinite reorganization loops
+- Files are sorted into existing folder structure
+
+#### Calibration
+
+Run "Calibrate" to perform a one-time full organization. This establishes the baseline folder structure that Smart Drop will use going forward.
+
+#### Per-Folder Settings
+
+Each watched folder can have:
+
+- Its own persona (e.g., Developer for your code folder)
+- Custom enable/disable state
+- Smart Drop mode settings
+
+---
+
+## Exclusion Rules
+
+### sorty://rules
+
+### sorty://exclusions
+
+Manage exclusion rules that protect files from being organized.
+
+**Note:** Both `sorty://rules` and `sorty://exclusions` are equivalent and open the same view.
+
+#### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `action` | String | No | Action to perform: `add` |
+| `type` | String | No | Type of exclusion rule: `pattern`, `folder`, or `extension` |
+| `pattern` | String | No | Pattern to exclude (used with `action=add`) |
+
+#### Examples
+
+**Open exclusion rules:**
+```
+sorty://rules
+sorty://exclusions
+```
+
+**Add a pattern rule:**
+```
+sorty://rules?action=add&type=pattern&pattern=*.log
+```
+
+**Add an extension rule:**
+```
+sorty://rules?action=add&type=extension&pattern=.DS_Store
+```
+
+#### Using the CLI
+
+```bash
+# Open exclusion rules
+sorty exclusions
+
+# Add exclusion rule
+sorty rules add "*.log"
+sorty rules add "*.tmp"
+sorty exclusions add "node_modules/*"
+```
+
+#### Types of Exclusion Rules
+
+| Rule Type | Examples |
+|-----------|----------|
+| **Pattern Matching** | `*.log`, `*.tmp`, `config*` |
+| **Folder Exclusions** | `/node_modules`, `/.git`, `/venv` |
+| **Extension Filters** | `.DS_Store`, `.gitignore` |
+| **Size-Based** | Files > 1GB, Files < 1KB |
+
+#### Common Exclusion Patterns
+
+```bash
+# JavaScript dependencies
+sorty rules add "node_modules/*"
+
+# Git repository data
+sorty rules add ".git/*"
+
+# Temporary files
+sorty rules add "*.tmp"
+sorty rules add "*.temp"
+
+# System files
+sorty rules add "Desktop.ini"
+sorty rules add ".DS_Store"
+
+# Log files
+sorty rules add "*.log"
+```
+
+---
+
+## Storage Locations
+
+### sorty://storage
+
+Manage custom storage destinations for organized files.
+
+#### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `action` | String | No | Action to perform: `add` |
+| `path` | String | No | Path to add as storage location (used with `action=add`) |
+
+#### Examples
+
+**Open storage locations:**
+```
+sorty://storage
+```
+
+**Add a storage location:**
+```
+sorty://storage?action=add&path=/Users/me/Archive
+```
+
+#### Using the CLI
+
+```bash
+# Open storage locations view
+sorty storage
+
+# Add storage location
+sorty storage add /Users/me/Archive
+sorty storage add ~/Documents/Organized
+```
+
+#### What are Storage Locations?
+
+Storage locations are custom destinations where Sorty can move organized files:
+
+- **Default**: Files are organized in-place within the source directory
+- **Custom Storage**: Files are moved to a separate destination folder
+
+**Use Cases:**
+
+- Archive old files to external drives
+- Separate active projects from completed ones
+- Organize Downloads into a dedicated storage folder
+
+---
+
+## Help
+
+### sorty://help
+
+Open the help documentation.
+
+#### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `section` | String | No | Jump to a specific help section (e.g., `updates`) |
+
+#### Examples
+
+**Open help:**
+```
+sorty://help
+```
+
+**Jump to updates section:**
+```
+sorty://help?section=updates
+```
+
+#### Using the CLI
+
+```bash
+# Open help
+sorty help
+
+# Check for updates
+sorty update
+```
+
+---
+
+## Integration Examples
+
+### Alfred Workflow: Quick Settings
+
+Create keywords for common settings:
+
+```bash
+# Keyword: "sorty-ai"
+open "sorty://settings?section=ai"
+
+# Keyword: "sorty-rules"
+open "sorty://settings?section=rules"
+
+# Keyword: "sorty-watched"
+open "sorty://watched"
+```
+
+### Keyboard Maestro: Generate Persona
+
+Create a macro that prompts for a description and generates a persona:
+
+```applescript
+set userPrompt to text returned of (display dialog "Describe your workflow:" default answer "")
+set encodedPrompt to do shell script "python3 -c \"import urllib.parse; print(urllib.parse.quote('" & userPrompt & "'))\""
+tell application "System Events"
+    open location "sorty://persona?action=generate&generate=true&prompt=" & encodedPrompt
+end tell
+```
+
+### Shortcuts: Add Watched Folder
+
+Create a shortcut that prompts for a folder and adds it to Watched:
+
+1. Add "Choose Folder" action
+2. Add "Open URLs" action with:
+   ```
+   sorty://watched?action=add&path=[Chosen Folder path]
+   ```
+
+### Hazel: Auto-Add Exclusions
+
+When a `.log` file appears, add its pattern to exclusions:
+
+```bash
+#!/bin/bash
+FILE="$1"
+PATTERN="*$(basename "$FILE")"
+open "sorty://rules?action=add&pattern=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$PATTERN'))"))"
+```
+
+---
+
+## Advanced Usage
+
+### Backup Settings Before Changes
+
+```bash
+#!/bin/bash
+# Backup current settings
+defaults export com.sorty.app ~/sorty-settings-backup.plist
+
+# Make changes via deeplinks
+sorty settings ai
+```
+
+### Batch Add Exclusion Rules
+
+```bash
+#!/bin/bash
+RULES=("*.log" "*.tmp" "node_modules/*" ".git/*" ".DS_Store")
+
+for rule in "${RULES[@]}"; do
+    sorty rules add "$rule"
+    sleep 1
+done
+```
+
+### Context-Aware Persona Selection
+
+Automatically choose persona based on directory name:
+
+```bash
+#!/bin/bash
+DIR="$1"
+BASENAME=$(basename "$DIR")
+
+case "$BASENAME" in
+    *code*|*project*)
+        PERSONA="developer"
+        ;;
+    *photo*|*picture*)
+        PERSONA="photographer"
+        ;;
+    *)
+        PERSONA="sorty_general"
+        ;;
+esac
+
+sorty organize "$DIR" --persona "$PERSONA" --auto
+```
+
+---
+
+## Troubleshooting
+
+### Persona Not Found
+
+If you get "Invalid persona" error:
+
+1. Open persona management: `sorty persona`
+2. Note the exact ID of your custom personas
+3. Use that ID in deeplinks (IDs are case-sensitive)
+
+### Watched Folder Access Lost
+
+If you see "Permission Denied" for watched folders:
+
+1. Remove the folder from the Watched list
+2. Re-add it to refresh the security bookmark
+3. Ensure Sorty is in `/Applications` (not Downloads or Desktop)
+
+### Settings Section Not Found
+
+If a settings section doesn't open:
+
+1. Use `sorty settings` without a section parameter
+2. Navigate manually to find the correct section name
+3. Check the [Available Sections](#available-sections) table above
+
+---
+
+## Next Steps
+
+- [Organization Deeplinks](/deeplinks/organization) - File organization and duplicate scanning
+- [Deeplinks Overview](/deeplinks/overview) - URL scheme basics and integration guides
+- [sorty CLI Reference](/cli/sorty) - Command-line interface documentation

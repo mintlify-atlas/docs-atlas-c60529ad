@@ -1,0 +1,275 @@
+---
+title: 'Deeplinks Overview'
+description: 'Introduction to the sorty:// URL scheme for app automation and external control'
+---
+
+# Deeplinks Overview
+
+Sorty provides a comprehensive URL scheme (`sorty://`) that allows you to control all aspects of the application from external sources. This enables powerful automation through tools like Alfred, Shortcuts, scripts, or the command-line interface.
+
+## What are Deeplinks?
+
+Deeplinks are special URLs that open Sorty and navigate directly to specific features or trigger actions. Instead of manually clicking through the app, you can use a single URL to:
+
+- Start organizing a specific folder
+- Open settings to a particular section
+- Scan for duplicates
+- Generate AI personas
+- Add watched folders or exclusion rules
+- Access The Learnings dashboard
+
+## URL Scheme Format
+
+All Sorty deeplinks follow this pattern:
+
+```
+sorty://<route>?<parameter1>=<value1>&<parameter2>=<value2>
+```
+
+**Components:**
+- **Scheme**: `sorty://` (required)
+- **Route**: The destination or action (e.g., `organize`, `settings`, `duplicates`)
+- **Parameters**: Optional query parameters that modify behavior (e.g., `path`, `autostart`, `persona`)
+
+## Basic Examples
+
+### Open Settings
+```
+sorty://settings
+```
+
+### Open Help
+```
+sorty://help
+```
+
+### Open Learnings Dashboard
+```
+sorty://learnings
+```
+
+### Open Workspace Health
+```
+sorty://health
+```
+
+### Open History
+```
+sorty://history
+```
+
+## Using Deeplinks
+
+### From Terminal
+
+Use the `open` command:
+
+```bash
+open "sorty://organize?path=/Users/me/Downloads&autostart=true"
+```
+
+### From CLI Tool
+
+The `sorty` CLI provides a friendly wrapper around deeplinks:
+
+```bash
+sorty organize /Users/me/Downloads --auto
+```
+
+This is equivalent to:
+
+```bash
+open "sorty://organize?path=/Users/me/Downloads&autostart=true"
+```
+
+### From Shortcuts (macOS)
+
+1. Create a new Shortcut
+2. Add "Open URLs" action
+3. Enter your deeplink URL
+4. Run the shortcut
+
+### From Alfred Workflows
+
+Create a workflow with a "Open URL" action:
+
+```
+sorty://organize?path={query}&autostart=true
+```
+
+### From AppleScript
+
+```applescript
+tell application "System Events"
+    open location "sorty://settings?section=ai"
+end tell
+```
+
+## URL Encoding
+
+When passing paths or text as parameters, you must URL-encode special characters:
+
+| Character | Encoded |
+|-----------|--------|
+| Space     | `%20`  |
+| `/`       | `%2F`  |
+| `&`       | `%26`  |
+| `?`       | `%3F`  |
+| `=`       | `%3D`  |
+
+**Example:**
+
+```bash
+# Incorrect (will fail)
+sorty://organize?path=/Users/me/My Documents
+
+# Correct (URL-encoded)
+sorty://organize?path=/Users/me/My%20Documents
+```
+
+The `sorty` CLI handles URL encoding automatically:
+
+```bash
+# No manual encoding needed
+sorty organize "/Users/me/My Documents"
+```
+
+## Available Routes
+
+Sorty deeplinks are organized into three main categories:
+
+### 1. Organization & Duplicate Management
+
+Control file organization and duplicate scanning:
+
+- `sorty://organize` - Start organizing a directory
+- `sorty://duplicates` - Scan for duplicate files
+
+See [Organization Deeplinks](/deeplinks/organization) for details.
+
+### 2. Settings, Persona & Utility
+
+Manage app configuration and AI personas:
+
+- `sorty://settings` - Open settings
+- `sorty://persona` - Manage personas
+- `sorty://learnings` - Access The Learnings dashboard
+- `sorty://history` - View organization history
+- `sorty://health` - Open Workspace Health
+- `sorty://help` - Open help documentation
+
+See [Management Deeplinks](/deeplinks/management) for details.
+
+### 3. Watched Folders & Rules
+
+Configure automatic organization and exclusions:
+
+- `sorty://watched` - Manage watched folders
+- `sorty://rules` - Manage exclusion rules
+- `sorty://exclusions` - View exclusion rules
+- `sorty://storage` - Manage storage locations
+
+See [Management Deeplinks](/deeplinks/management) for details.
+
+## Common Parameters
+
+Many deeplinks share common parameters:
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `path` | String | Absolute file system path (must be URL-encoded) |
+| `autostart` | Boolean | Automatically begin the action (`true`/`false`) |
+| `action` | String | Specific action to perform (e.g., `add`, `generate`, `honing`) |
+| `section` | String | Navigate to a specific section (used in settings/help) |
+
+## Security Considerations
+
+### Path Validation
+
+Sorty validates all paths provided via deeplinks:
+
+- Path must exist on the file system
+- Path must be a valid directory (for organization/duplicates)
+- User must have read/write permissions
+
+### API Key Protection
+
+Deeplinks cannot be used to extract or modify API keys stored in the Keychain.
+
+### Safe Defaults
+
+- `autostart=false` is the default (preview before action)
+- Destructive operations require explicit confirmation
+- Exclusion rules protect important files
+
+## Troubleshooting
+
+### Deeplink Not Working
+
+1. **Verify the scheme**: Must be `sorty://` (not `sorty:` or `sorty:/`)
+2. **Check URL encoding**: Paths with spaces or special characters must be encoded
+3. **Validate the route**: Ensure the route exists (see documentation)
+4. **Test in Terminal**: Use `open "sorty://..."` to see error messages
+
+### Permission Denied
+
+- Sorty requires Full Disk Access for some directories
+- Check System Settings → Privacy & Security → Full Disk Access
+- Ensure the path provided is readable
+
+### Autostart Not Working
+
+- Verify `autostart=true` (not `autostart=1` or `auto=true`)
+- Some actions require configuration (e.g., AI provider for organization)
+- Check app logs for error messages
+
+## CLI vs Direct Deeplinks
+
+The `sorty` CLI is recommended over direct deeplinks for most use cases:
+
+### Advantages of CLI
+
+- Automatic URL encoding
+- Path validation and error messages
+- Friendly syntax (`--auto` instead of `autostart=true`)
+- Built-in help (`sorty help`)
+
+### When to Use Direct Deeplinks
+
+- Integration with Shortcuts or AppleScript
+- Custom automation workflows
+- When you need precise control over parameters
+
+## Example Workflows
+
+### Alfred: Quick Organization
+
+Create an Alfred workflow that organizes the current Finder selection:
+
+```bash
+#!/bin/bash
+PATH=$(osascript -e 'tell application "Finder" to POSIX path of (insertion location as alias)')
+open "sorty://organize?path=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$PATH'))")&autostart=true"
+```
+
+### Keyboard Maestro: Scheduled Cleanup
+
+Schedule duplicate scans:
+
+```bash
+sorty duplicates ~/Downloads --auto
+```
+
+### Hazel: Post-Download Organization
+
+Organize files dropped into Downloads:
+
+```bash
+sorty organize ~/Downloads --persona developer --auto
+```
+
+## Next Steps
+
+- [Organization & Duplicate Deeplinks](/deeplinks/organization) - File organization and duplicate scanning
+- [Management Deeplinks](/deeplinks/management) - Settings, personas, and utilities
+- [sorty CLI Reference](/cli/sorty) - Command-line interface documentation
