@@ -1,0 +1,118 @@
+{
+  "projectType": "saas",
+  "projectName": "Sorty",
+  "projectDescription": "AI-powered macOS file organizer that intelligently sorts directories using machine learning and customizable personas",
+  "theme": "palm",
+  "primaryColor": "#6366f1",
+  "lightColor": "#818cf8",
+  "darkColor": "#4f46e5",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/file-organization",
+              "features/ai-providers",
+              "features/personas",
+              "features/the-learnings",
+              "features/workspace-health",
+              "features/duplicate-detection"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "configuration/settings",
+              "configuration/watched-folders",
+              "configuration/exclusion-rules",
+              "configuration/storage-locations"
+            ]
+          },
+          {
+            "group": "Automation",
+            "pages": [
+              "automation/cli-tools",
+              "automation/deeplinks",
+              "automation/finder-integration"
+            ]
+          },
+          {
+            "group": "Advanced",
+            "pages": [
+              "advanced/security",
+              "advanced/troubleshooting",
+              "advanced/keyboard-shortcuts"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "CLI Commands",
+            "pages": [
+              "cli/sorty",
+              "cli/learnings"
+            ]
+          },
+          {
+            "group": "Deeplinks",
+            "pages": [
+              "deeplinks/overview",
+              "deeplinks/organization",
+              "deeplinks/management"
+            ]
+          },
+          {
+            "group": "Developer Guide",
+            "pages": [
+              "developer/architecture",
+              "developer/ai-providers",
+              "developer/contributing"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "AI-powered intelligent file organization",
+    "Multiple AI provider support (OpenAI, Anthropic, Ollama, Apple Intelligence)",
+    "Passive learning system that adapts to user preferences",
+    "Custom personas for different workflows",
+    "Workspace health monitoring and analytics",
+    "Duplicate file detection with safe deletion",
+    "Watched folders with automatic organization",
+    "Finder extension integration",
+    "Comprehensive CLI tools and deeplinks",
+    "Privacy-focused with local processing options"
+  ],
+  "publicApiSurface": [
+    "sorty organize <path> [--persona <id>] [--auto]",
+    "sorty duplicates <path> [--auto]",
+    "sorty watched add <path>",
+    "sorty persona generate <prompt>",
+    "sorty rules add <pattern>",
+    "learnings status",
+    "learnings stats",
+    "learnings export",
+    "sorty://organize?path=<path>&persona=<id>&autostart=true",
+    "sorty://duplicates?path=<path>&autostart=true",
+    "sorty://learnings?action=honing",
+    "sorty://settings?section=<section>",
+    "sorty://health",
+    "sorty://persona?action=generate&prompt=<text>"
+  ]
+}
